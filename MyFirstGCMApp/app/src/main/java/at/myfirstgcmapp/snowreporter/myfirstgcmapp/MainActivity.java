@@ -209,8 +209,8 @@ public class MainActivity extends ActionBarActivity {
         String str = gcmIntentService.getMessage();
         try {
             JSONObject jsonObject = new JSONObject(str);
-            String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossEntry").getString("ID");
-            name += jsonObject.getJSONObject("glossary").getJSONObject("GlossEntry").getString("Abbrev");
+            String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
+            name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
             mDisplay.setText(name);
         }
         catch (JSONException e) {
