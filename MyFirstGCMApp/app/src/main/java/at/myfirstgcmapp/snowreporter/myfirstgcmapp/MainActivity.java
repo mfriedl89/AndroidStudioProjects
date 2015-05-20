@@ -23,13 +23,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class MainActivity extends ActionBarActivity {
-    private static final String TAG = MainActivity.class.getSimpleName();
     public static final String EXTRA_MESSAGE = "message";
     public static final String PROPERTY_REG_ID = "registration_id";
     private static final String PROPERTY_APP_VERSION = "appVersion";
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
     String SENDER_ID = "757701274377";
+
+    static final String TAG = "GCMDemo";
 
     TextView mDisplay;
     GoogleCloudMessaging gcm;
@@ -59,6 +60,7 @@ public class MainActivity extends ActionBarActivity {
         else {
             Log.i(TAG, "No valid Google Play Service APK found.");
         }
+        Log.i(TAG, regid);
     }
 
     @Override

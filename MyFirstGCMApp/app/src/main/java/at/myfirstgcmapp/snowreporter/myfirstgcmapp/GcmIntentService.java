@@ -1,14 +1,23 @@
 package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 
+import android.app.ActionBar;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.IntentService;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.view.LayoutInflater;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
@@ -16,10 +25,10 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
  * Created by snowreporter on 06.05.2015.
  */
 public class GcmIntentService extends IntentService {
-    private static final String TAG = GcmIntentService.class.getSimpleName();
     public static final int NOTIFICATION_ID = 1;
     private NotificationManager mNotificationManager;
-    NotificationCompat.Builder builder;
+
+    static final String TAG = "GCMDemo";
 
     public GcmIntentService() {
         super("GcmIntentService");
@@ -43,7 +52,7 @@ public class GcmIntentService extends IntentService {
                 for (int i=0; i<5; i++) {
                     Log.i(TAG, "Working... " + (i+1) + "/5 @ " + SystemClock.elapsedRealtime());
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(500);
                     }
                     catch (InterruptedException e) {
                     }
@@ -57,15 +66,24 @@ public class GcmIntentService extends IntentService {
     }
 
     private void sendNotification(String msg) {
-        mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+        Context context = getApplicationContext();
 
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
+        mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_stat_gcm)
+                .setCategory(Notification.CATEGORY_PROMO)
                 .setContentTitle("GCM Notification")
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(msg))
-                .setContentText(msg);
+                .setContentText(msg)
+                .setSound(alarmSound)
+                .setAutoCancel(true)
+                .setVisibility(1);
+                //.setDefaults(Notification.DEFAULT_ALL);
 
         mBuilder.setContentIntent(contentIntent);
         mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
