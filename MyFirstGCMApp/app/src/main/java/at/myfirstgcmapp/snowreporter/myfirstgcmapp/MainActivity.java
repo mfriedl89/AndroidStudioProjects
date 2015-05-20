@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -17,6 +16,9 @@ import android.widget.TextView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +41,7 @@ public class MainActivity extends ActionBarActivity {
     Context context;
 
     String regid;
+    public String message;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -198,6 +201,20 @@ public class MainActivity extends ActionBarActivity {
         }
         else if (view == findViewById(R.id.clear)) {
             mDisplay.setText("");
+        }
+    }
+
+    public void refresh(View view) throws JSONException {
+        GcmIntentService gcmIntentService = new GcmIntentService();
+        String str = gcmIntentService.getMessage();
+        try {
+            JSONObject jsonObject = new JSONObject(str);
+            String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossEntry").getString("ID");
+            name += jsonObject.getJSONObject("glossary").getJSONObject("GlossEntry").getString("Abbrev");
+            mDisplay.setText(name);
+        }
+        catch (JSONException e) {
+            Log.i(TAG, "JSONException: " + e);
         }
     }
 }

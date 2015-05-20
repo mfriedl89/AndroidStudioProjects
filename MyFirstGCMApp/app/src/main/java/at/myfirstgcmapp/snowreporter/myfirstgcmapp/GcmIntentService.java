@@ -1,23 +1,17 @@
 package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 
-import android.app.ActionBar;
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.view.LayoutInflater;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
@@ -34,6 +28,12 @@ public class GcmIntentService extends IntentService {
         super("GcmIntentService");
     }
 
+    private static String message = "";
+
+    public String getMessage() {
+        return message;
+    }
+
     @Override
     protected void onHandleIntent(Intent intent) {
         Bundle extras = intent.getExtras();
@@ -42,6 +42,8 @@ public class GcmIntentService extends IntentService {
         String messageType = gcm.getMessageType(intent);
 
         if(!extras.isEmpty()) {
+            message = extras.getString("m");
+
             if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
                 sendNotification("Send error: " + extras.toString());
             }
@@ -59,6 +61,8 @@ public class GcmIntentService extends IntentService {
                 }
                 sendNotification("Received: " + extras.toString());
                 Log.i(TAG, "Received: " + extras.toString());
+                Log.i(TAG, "Message: " + message);
+
             }
         }
 
@@ -77,13 +81,12 @@ public class GcmIntentService extends IntentService {
 
         final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_stat_gcm)
-                .setCategory(Notification.CATEGORY_PROMO)
+                .setCategory(Notification.CATEGORY_MESSAGE)
                 .setContentTitle("GCM Notification")
                 .setContentText(msg)
                 .setSound(alarmSound)
                 .setAutoCancel(true)
                 .setVisibility(1);
-                //.setDefaults(Notification.DEFAULT_ALL);
 
         mBuilder.setContentIntent(contentIntent);
         mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
