@@ -9,5 +9,7 @@
     <string name="notification_dismiss_button">Dismiss</string>
     <string name="notification_collapse_button">Collapse</string>
     <string name="notification_expand_button">Expand</string>
-
+    <string name="email">Email Address</string>
+    <string name="refresh">Refresh</string>
+    <string name="registration">Registration</string>
 </resources>

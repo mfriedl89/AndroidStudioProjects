@@ -1,36 +1,43 @@
 package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+import org.apache.http.Header;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class MainActivity extends ActionBarActivity {
     public static final String EXTRA_MESSAGE = "message";
     public static final String PROPERTY_REG_ID = "registration_id";
     private static final String PROPERTY_APP_VERSION = "appVersion";
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-
-    String SENDER_ID = "757701274377";
 
     static final String TAG = "GCMDemo";
 
@@ -43,6 +50,13 @@ public class MainActivity extends ActionBarActivity {
     String regid;
     public String message;
 
+    ProgressDialog prgDialog;
+    RequestParams params = new RequestParams();
+    public static final String REG_ID = "regId";
+    public static final String EMAIL_ID = "eMailId";
+    EditText emailET;
+    AsyncTask<Void, Void, String> createRegIdTask;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
 
         context = getApplicationContext();
 
-        if (checkPlayServices()) {
+/*        if (checkPlayServices()) {
             gcm = GoogleCloudMessaging.getInstance(this);
             regid = getRegistrationId(context);
 
@@ -63,7 +77,33 @@ public class MainActivity extends ActionBarActivity {
         else {
             Log.i(TAG, "No valid Google Play Service APK found.");
         }
-        Log.i(TAG, regid);
+        Log.i(TAG, regid);*/
+
+        prgDialog = new ProgressDialog(this);
+        // Set Progress Dialog Text
+        prgDialog.setMessage("Please wait...");
+        // Set Cancelable as False
+        prgDialog.setCancelable(false);
+
+        SharedPreferences prefs = getSharedPreferences("UserDetails",
+                Context.MODE_PRIVATE);
+        String registrationId = prefs.getString(REG_ID, "");
+
+        emailET = (EditText) findViewById(R.id.email);
+
+        //When Email ID is set in Sharedpref, User will be taken to HomeActivity
+        if (!TextUtils.isEmpty(registrationId)) {
+            Intent i = new Intent(context, MainActivity.class);
+            i.putExtra("regId", registrationId);
+            //startActivity(i);
+            //finish();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkPlayServices();
     }
 
     @Override
@@ -95,6 +135,10 @@ public class MainActivity extends ActionBarActivity {
                 GooglePlayServicesUtil.getErrorDialog(resultColde, this, PLAY_SERVICES_RESOLUTION_REQUEST).show();
             }
             else {
+                Toast.makeText(
+                        context,
+                        "This device doesn't support Play services, App will not work normally",
+                        Toast.LENGTH_LONG).show();
                 Log.i(TAG, "This device is not supported.");
                 finish();
             }
@@ -132,46 +176,42 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void registerInBackground() {
-        new AsyncTask() {
+    // AsyncTask to register Device in GCM Server
+    private void registerInBackground(final String emailID) {
+        new AsyncTask<Void, Void, String>() {
             @Override
-            protected Object doInBackground(Object[] params) {
+            protected String doInBackground(Void... params) {
                 String msg = "";
                 try {
                     if (gcm == null) {
                         gcm = GoogleCloudMessaging.getInstance(context);
                     }
-                    regid = gcm.register(SENDER_ID);
-                    msg = "Device registered, registration ID=" + regid;
+                    regid = gcm.register(ApplicationConstants.SENDER_ID);
+                    msg = "Registration ID :" + regid;
 
-                    sendRegistrationIdToBackend();
-
-                    storeRegistrationId(context, regid);
+                } catch (IOException ex) {
+                    msg = "Error :" + ex.getMessage();
                 }
-                catch (IOException ex) {
-                    msg = "Error: " + ex.getMessage();
-                }
-                return  msg;
+                return msg;
             }
 
+            @Override
             protected void onPostExecute(String msg) {
-                mDisplay.append(msg + "\n");
+                if (!TextUtils.isEmpty(regid)) {
+                    // Store RegId created by GCM Server in SharedPref
+                    storeRegIdinSharedPref(context, regid, emailID);
+                    Toast.makeText(
+                            context,
+                            "Registered with GCM Server successfully.\n\n"
+                                    + msg, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(
+                            context,
+                            "Reg ID Creation Failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time."
+                                    + msg, Toast.LENGTH_LONG).show();
+                }
             }
         }.execute(null, null, null);
-    }
-
-    private void sendRegistrationIdToBackend() {
-
-    }
-
-    private void storeRegistrationId(Context context, String regid) {
-        final SharedPreferences prefs = getGCMPreferences(context);
-        int appVersion = getAppVersion(context);
-        Log.i(TAG, "Saving regId on app version " + appVersion);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(PROPERTY_REG_ID, regid);
-        editor.putInt(PROPERTY_APP_VERSION, appVersion);
-        editor.commit();
     }
 
     public void onClick(final View view) {
@@ -185,7 +225,7 @@ public class MainActivity extends ActionBarActivity {
                         data.putString("my_message", "Hello World");
                         data.putString("my_action", "com.google.android.gcm.dem.app.ECHO_NOW");
                         String id = Integer.toString(msgId.incrementAndGet());
-                        gcm.send(SENDER_ID + "@gcm.googleapis.com", id, data);
+                        gcm.send(ApplicationConstants.SENDER_ID + "@gcm.googleapis.com", id, data);
                         msg = "Sent message";
                     }
                     catch (IOException ex) {
@@ -216,5 +256,104 @@ public class MainActivity extends ActionBarActivity {
         catch (JSONException e) {
             Log.i(TAG, "JSONException: " + e);
         }
+    }
+
+    public void idRegistration(View view) {
+        String emailID = emailET.getText().toString();
+
+        if (!TextUtils.isEmpty(emailID) && Utility.validate(emailID)) {
+
+            // Check if Google Play Service is installed in Device
+            // Play services is needed to handle GCM stuffs
+            if (checkPlayServices()) {
+
+                Log.i(TAG, "REG - Before registerInBackground: " + emailID);
+                // Register Device in GCM Server
+                registerInBackground(emailID);
+            }
+        }
+        // When Email is invalid
+        else {
+            Toast.makeText(context, "Please enter valid email",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // Store  RegId and Email entered by User in SharedPref
+    private void storeRegIdinSharedPref(Context context, String regId,
+                                        String emailID) {
+        Log.i(TAG, "REG - Before storeRegIdinSharedPref: " + regId + " " + emailID);
+
+        SharedPreferences prefs = getSharedPreferences("UserDetails",
+                Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(REG_ID, regId);
+        editor.putString(EMAIL_ID, emailID);
+        editor.commit();
+        storeRegIdinServer();
+    }
+
+    // Share RegID with GCM Server Application (Php)
+    private void storeRegIdinServer() {
+        prgDialog.show();
+        params.put("regId", regid);
+
+        Log.i(TAG, "REG - storeRegIdinServer: " + regid + " ");
+
+        // Make RESTful webservice call using AsyncHttpClient object
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.post(ApplicationConstants.APP_SERVER_URL, params,
+            new AsyncHttpResponseHandler() {
+                // When the response returned by REST has Http
+                // response code '200'
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                    // Hide Progress Dialog
+                    prgDialog.hide();
+                    if (prgDialog != null) {
+                        prgDialog.dismiss();
+                    }
+                    Toast.makeText(context,
+                            "Reg Id shared successfully with Web App ",
+                            Toast.LENGTH_LONG).show();
+                    Intent i = new Intent(context,
+                            MainActivity.class);
+                    i.putExtra("regId", regid);
+                    //startActivity(i);
+                    //finish();
+                }
+
+                // When the response returned by REST has Http
+                // response code other than '200' such as '404',
+                // '500' or '403' etc
+                @Override
+                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                    // Hide Progress Dialog
+                    prgDialog.hide();
+                    if (prgDialog != null) {
+                        prgDialog.dismiss();
+                    }
+                    // When Http response code is '404'
+                    if (statusCode == 404) {
+                        Toast.makeText(context,
+                                "Requested resource not found",
+                                Toast.LENGTH_LONG).show();
+                    }
+                    // When Http response code is '500'
+                    else if (statusCode == 500) {
+                        Toast.makeText(context,
+                                "Something went wrong at server end",
+                                Toast.LENGTH_LONG).show();
+                    }
+                    // When Http response code other than 404, 500
+                    else {
+                        Toast.makeText(
+                                context,
+                                "Unexpected Error occcured! [Most common Error: Device might "
+                                        + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
     }
 }
