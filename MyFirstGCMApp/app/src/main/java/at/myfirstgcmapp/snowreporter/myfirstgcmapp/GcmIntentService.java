@@ -4,16 +4,21 @@ import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothClass;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.view.View;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+
+import org.json.JSONException;
 
 /**
  * Created by snowreporter on 06.05.2015.
@@ -86,9 +91,19 @@ public class GcmIntentService extends IntentService {
                 .setContentText(msg)
                 .setSound(alarmSound)
                 .setAutoCancel(true)
-                .setVisibility(1);
+                .setPriority(10)
+                .setVisibility(1)
+                .setContentIntent(contentIntent);
 
-        mBuilder.setContentIntent(contentIntent);
-        mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
+        //mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
+
+        Notification notification = mBuilder.build();
+
+        //MainActivity.refreshJSONString();
+
+        if ((int) Build.VERSION.SDK_INT >= 21) {
+            mBuilder.setCategory (Notification.CATEGORY_MESSAGE);
+            mBuilder.setVisibility (Notification.VISIBILITY_PUBLIC);
+        }
     }
 }

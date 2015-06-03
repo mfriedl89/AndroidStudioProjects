@@ -1,6 +1,18 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/action_speech"
+        android:icon="@drawable/ic_action_mic"
+        android:showAsAction="ifRoom"
+        android:title="Speech"/>
+    <item android:id="@+id/action_call"
+        android:icon="@drawable/ic_action_call"
+        android:showAsAction="ifRoom"
+        android:title="Call"/>
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+    <item android:id="@+id/action_registration"
+        android:title="@string/registration"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
 </menu>

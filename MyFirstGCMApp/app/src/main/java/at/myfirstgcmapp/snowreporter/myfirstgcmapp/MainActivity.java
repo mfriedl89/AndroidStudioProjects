@@ -1,12 +1,17 @@
 package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.speech.RecognizerIntent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -20,6 +25,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.fitness.data.Device;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import com.loopj.android.http.AsyncHttpClient;
@@ -33,7 +39,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements MainFragment.OnFragmentInteractionListener{
     public static final String EXTRA_MESSAGE = "message";
     public static final String PROPERTY_REG_ID = "registration_id";
     private static final String PROPERTY_APP_VERSION = "appVersion";
@@ -41,11 +47,11 @@ public class MainActivity extends ActionBarActivity {
 
     static final String TAG = "GCMDemo";
 
-    TextView mDisplay;
+    static TextView mDisplay;
     GoogleCloudMessaging gcm;
     AtomicInteger msgId = new AtomicInteger();
     SharedPreferences prefs;
-    Context context;
+    static Context context;
 
     String regid;
     public String message;
@@ -98,6 +104,10 @@ public class MainActivity extends ActionBarActivity {
             //startActivity(i);
             //finish();
         }
+
+        if(savedInstanceState == null){
+            getFragmentManager().beginTransaction().add(R.id.container, new MainFragment()).commit();
+        }
     }
 
     @Override
@@ -121,11 +131,39 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_call:
+                Intent dialer = new Intent(Intent.ACTION_DIAL);
+                startActivity(dialer);
+                return true;
+            case R.id.action_speech:
+                Intent speech = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                speech.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                startActivityForResult(speech, 1234);
+                return true;
+            case R.id.action_settings:
+                Toast.makeText(context, "Settings clicked", Toast.LENGTH_LONG).show();
+                return true;
+            case R.id.action_registration:
+                Fragment main = new MainFragment();
+                FragmentTransaction ft = getFragmentManager().beginTransaction();
+                ft.replace(R.id.content_linear_layout,main);
+                ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+                ft.addToBackStack(null);
+                ft.commit();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
+    }
 
-        return super.onOptionsItemSelected(item);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 1234 && resultCode == RESULT_OK) {
+            String voice_text = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS).get(0);
+            Toast.makeText(getApplicationContext(),voice_text,Toast.LENGTH_LONG).show();
+
+        }
     }
 
     private boolean checkPlayServices() {
@@ -244,19 +282,31 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    public void refresh(View view) throws JSONException {
+    public void refresh(View view) {
+        refreshJSONString();
+    }
+
+    public static void refreshJSONString() {
+
+
         GcmIntentService gcmIntentService = new GcmIntentService();
         String str = gcmIntentService.getMessage();
-        try {
-            JSONObject jsonObject = new JSONObject(str);
-            String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
-            name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
-            mDisplay.setText(name);
-        }
-        catch (JSONException e) {
-            Log.i(TAG, "JSONException: " + e);
+
+        if (!str.isEmpty()) {
+            try {
+                JSONObject jsonObject = new JSONObject(str);
+                String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
+                name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
+                mDisplay.setText(name);
+            } catch (JSONException e) {
+                Log.i(TAG, "JSONException: " + e);
+            }
+        } else {
+            Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
         }
     }
+
+
 
     public void idRegistration(View view) {
         String emailID = emailET.getText().toString();
@@ -303,57 +353,62 @@ public class MainActivity extends ActionBarActivity {
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
         client.post(ApplicationConstants.APP_SERVER_URL, params,
-            new AsyncHttpResponseHandler() {
-                // When the response returned by REST has Http
-                // response code '200'
-                @Override
-                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                    // Hide Progress Dialog
-                    prgDialog.hide();
-                    if (prgDialog != null) {
-                        prgDialog.dismiss();
+                new AsyncHttpResponseHandler() {
+                    // When the response returned by REST has Http
+                    // response code '200'
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                        // Hide Progress Dialog
+                        prgDialog.hide();
+                        if (prgDialog != null) {
+                            prgDialog.dismiss();
+                        }
+                        Toast.makeText(context,
+                                "Reg Id shared successfully with Web App ",
+                                Toast.LENGTH_LONG).show();
+                        Intent i = new Intent(context,
+                                MainActivity.class);
+                        i.putExtra("regId", regid);
+                        //startActivity(i);
+                        //finish();
                     }
-                    Toast.makeText(context,
-                            "Reg Id shared successfully with Web App ",
-                            Toast.LENGTH_LONG).show();
-                    Intent i = new Intent(context,
-                            MainActivity.class);
-                    i.putExtra("regId", regid);
-                    //startActivity(i);
-                    //finish();
-                }
 
-                // When the response returned by REST has Http
-                // response code other than '200' such as '404',
-                // '500' or '403' etc
-                @Override
-                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                    // Hide Progress Dialog
-                    prgDialog.hide();
-                    if (prgDialog != null) {
-                        prgDialog.dismiss();
+                    // When the response returned by REST has Http
+                    // response code other than '200' such as '404',
+                    // '500' or '403' etc
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                        // Hide Progress Dialog
+                        prgDialog.hide();
+                        if (prgDialog != null) {
+                            prgDialog.dismiss();
+                        }
+                        // When Http response code is '404'
+                        if (statusCode == 404) {
+                            Toast.makeText(context,
+                                    "Requested resource not found",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        // When Http response code is '500'
+                        else if (statusCode == 500) {
+                            Toast.makeText(context,
+                                    "Something went wrong at server end",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        // When Http response code other than 404, 500
+                        else {
+                            Toast.makeText(
+                                    context,
+                                    "Unexpected Error occcured! [Most common Error: Device might "
+                                            + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                                    Toast.LENGTH_LONG).show();
+                        }
                     }
-                    // When Http response code is '404'
-                    if (statusCode == 404) {
-                        Toast.makeText(context,
-                                "Requested resource not found",
-                                Toast.LENGTH_LONG).show();
-                    }
-                    // When Http response code is '500'
-                    else if (statusCode == 500) {
-                        Toast.makeText(context,
-                                "Something went wrong at server end",
-                                Toast.LENGTH_LONG).show();
-                    }
-                    // When Http response code other than 404, 500
-                    else {
-                        Toast.makeText(
-                                context,
-                                "Unexpected Error occcured! [Most common Error: Device might "
-                                        + "not be connected to Internet or remote server is not up and running], check for other errors as well",
-                                Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
+                });
+    }
+
+    public void onFragmentInteraction(Uri uri){
+        Toast toast = Toast.makeText(this, "New Button", Toast.LENGTH_SHORT);
+        toast.show();
     }
 }
