@@ -39,7 +39,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MainActivity extends ActionBarActivity implements MainFragment.OnFragmentInteractionListener{
+public class MainActivity extends ActionBarActivity {
     public static final String EXTRA_MESSAGE = "message";
     public static final String PROPERTY_REG_ID = "registration_id";
     private static final String PROPERTY_APP_VERSION = "appVersion";
@@ -104,10 +104,6 @@ public class MainActivity extends ActionBarActivity implements MainFragment.OnFr
             //startActivity(i);
             //finish();
         }
-
-        if(savedInstanceState == null){
-            getFragmentManager().beginTransaction().add(R.id.container, new MainFragment()).commit();
-        }
     }
 
     @Override
@@ -145,12 +141,7 @@ public class MainActivity extends ActionBarActivity implements MainFragment.OnFr
                 Toast.makeText(context, "Settings clicked", Toast.LENGTH_LONG).show();
                 return true;
             case R.id.action_registration:
-                Fragment main = new MainFragment();
-                FragmentTransaction ft = getFragmentManager().beginTransaction();
-                ft.replace(R.id.content_linear_layout,main);
-                ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
-                ft.addToBackStack(null);
-                ft.commit();
+                Toast.makeText(context, "Registration clicked", Toast.LENGTH_LONG).show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

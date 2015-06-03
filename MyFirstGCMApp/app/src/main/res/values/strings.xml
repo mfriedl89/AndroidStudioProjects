@@ -13,7 +13,6 @@
     <string name="refresh">Refresh</string>
     <string name="registration">Registration</string>
     <string name="json_string_not_exists">No Json-String detected</string>
-
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="newInfo">New Info</string>
+    <string name="title_activity_main_info">MainInfo</string>
 </resources>
