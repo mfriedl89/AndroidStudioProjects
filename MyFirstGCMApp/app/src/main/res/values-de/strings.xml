@@ -10,4 +10,8 @@
     <string name="refresh">Aktualisieren</string>
     <string name="registration">Registrierung</string>
     <string name="send">Senden</string>
+    <string name="white">Weiß</string>
+    <string name="black">Schwarz</string>
+    <string name="json_string_not_exists">Kein Json-String vorhanden</string>
+    <string name="newInfo">Neue Info</string>
 </resources>

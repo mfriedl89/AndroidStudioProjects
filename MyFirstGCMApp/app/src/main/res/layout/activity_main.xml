@@ -25,7 +25,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:onClick="onClick"
-                android:text="@string/send" />
+                android:text="@string/send"
+                android:enabled="false"
+                android:visibility="invisible" />
 
             <Button
                 android:id="@+id/clear"
@@ -35,11 +37,11 @@
                 android:text="@string/clear" />
 
             <Button
+                android:id="@+id/refresh"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/refresh"
-                android:onClick="refresh"
-                android:id="@+id/button" />
+                android:onClick="onClick"
+                android:text="@string/refresh" />
 
         </LinearLayout>
 

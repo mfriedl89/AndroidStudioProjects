@@ -8,4 +8,6 @@
     <string name="refresh">Refresh</string>
     <string name="registration">Registration</string>
     <string name="send">Send</string>
+    <string name="white">White</string>
+    <string name="black">Black</string>
 </resources>

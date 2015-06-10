@@ -3,15 +3,19 @@ package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.CalendarContract;
 import android.speech.RecognizerIntent;
+import android.support.annotation.ColorInt;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -20,6 +24,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -97,6 +103,9 @@ public class MainActivity extends ActionBarActivity {
 
         emailET = (EditText) findViewById(R.id.email);
 
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        nm.cancelAll();
+
         //When Email ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(registrationId)) {
             Intent i = new Intent(context, MainActivity.class);
@@ -110,6 +119,9 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         checkPlayServices();
+
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        nm.cancelAll();
     }
 
     @Override
@@ -126,6 +138,8 @@ public class MainActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
+        LinearLayout mainLayout = (LinearLayout) findViewById(R.id.content_linear_layout);
+
         //noinspection SimplifiableIfStatement
         switch (id) {
             case R.id.action_call:
@@ -138,10 +152,29 @@ public class MainActivity extends ActionBarActivity {
                 startActivityForResult(speech, 1234);
                 return true;
             case R.id.action_settings:
-                Toast.makeText(context, "Settings clicked", Toast.LENGTH_LONG).show();
+                Intent settings = new Intent(this, MainInfo.class);
+                startActivity(settings);
                 return true;
             case R.id.action_registration:
                 Toast.makeText(context, "Registration clicked", Toast.LENGTH_LONG).show();
+                return true;
+            case R.id.action_background_black:
+                if(item.isChecked())
+                    item.setChecked(false);
+                else
+                    item.setChecked(true);
+                mainLayout.setBackgroundColor(Color.BLACK);
+                emailET.setTextColor(Color.WHITE);
+                emailET.setHintTextColor(Color.WHITE);
+                return true;
+            case R.id.action_background_white:
+                if(item.isChecked())
+                    item.setChecked(false);
+                else
+                    item.setChecked(true);
+                mainLayout.setBackgroundColor(Color.WHITE);
+                emailET.setTextColor(Color.BLACK);
+                emailET.setHintTextColor(Color.BLACK);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -271,16 +304,51 @@ public class MainActivity extends ActionBarActivity {
         else if (view == findViewById(R.id.clear)) {
             mDisplay.setText("");
         }
+        else if (view == findViewById(R.id.refresh)) {
+            refreshJSONString();
+        }
     }
 
-    public void refresh(View view) {
-        refreshJSONString();
-    }
+    public void refreshJSONString() {
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                try {
+                    synchronized (this){
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                GcmIntentService gcmIntentService = new GcmIntentService();
+                                String str = gcmIntentService.getMessage();
 
-    public static void refreshJSONString() {
+                                if (!str.isEmpty()) {
+                                    try {
+                                        JSONObject jsonObject = new JSONObject(str);
+                                        String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
+                                        name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
+                                        mDisplay.setText(name);
+                                    } catch (JSONException e) {
+                                        Log.i(TAG, "JSONException: " + e);
+                                    }
+                                } else {
+                                    try {
+                                        Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
+                                    } catch (Exception e) {
+                                        Log.i(TAG, "Exception: " + e);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        };
+        thread.start();
 
-
-        GcmIntentService gcmIntentService = new GcmIntentService();
+/*        GcmIntentService gcmIntentService = new GcmIntentService();
         String str = gcmIntentService.getMessage();
 
         if (!str.isEmpty()) {
@@ -289,12 +357,19 @@ public class MainActivity extends ActionBarActivity {
                 String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
                 name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
                 mDisplay.setText(name);
-            } catch (JSONException e) {
+            }
+            catch (JSONException e) {
                 Log.i(TAG, "JSONException: " + e);
             }
-        } else {
-            Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
         }
+        else {
+            try {
+                Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
+            }
+            catch (Exception e) {
+                Log.i(TAG, "Exception: " + e);
+            }
+        }*/
     }
 
 

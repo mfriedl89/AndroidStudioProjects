@@ -18,6 +18,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.View;
 
+import com.google.android.gms.fitness.data.Device;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import org.json.JSONException;
@@ -82,6 +83,9 @@ public class GcmIntentService extends IntentService {
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
+        Intent settings = new Intent(this, MainInfo.class);
+        PendingIntent settinsIntent = PendingIntent.getActivity(this, 0, settings, 0);
+
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
@@ -96,12 +100,10 @@ public class GcmIntentService extends IntentService {
         inboxStyle.setBigContentTitle("Event tracker details:");
 
 // Moves events into the expanded layout
-        for (int i=0; i < events.length; i++) {
+        for (int i = 0; i < events.length; i++) {
 
             inboxStyle.addLine(events[i]);
         }
-
-
 
         final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_stat_gcm)
@@ -112,9 +114,8 @@ public class GcmIntentService extends IntentService {
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setTicker("new GCM")
                 .setLights(0xFFAAAA00, 200, 2000)
-                //.setFullScreenIntent(fragmentPendingIntent,true)
-                .setContentIntent(contentIntent)
-                .setStyle(textStyle);
+                .setStyle(textStyle)
+                .setContentIntent(contentIntent);
 
         if (Build.VERSION.SDK_INT >= 21) {
             mBuilder
@@ -129,6 +130,27 @@ public class GcmIntentService extends IntentService {
 
         int notificationId = 0;
         mNotificationManager.notify(notificationId, notification);
+/*
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                try {
+                    synchronized (this){
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                MainActivity.refreshJSONString();
+                            }
+                        });
+                    }
+                }
+                catch (InterruptedException e){
+                    e.printStackTrace();
+                }
+            }
+        };
+        thread.start();*/
 
+        //MainActivity.refreshJSONString();
     }
 }

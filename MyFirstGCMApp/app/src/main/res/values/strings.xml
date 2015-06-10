@@ -15,4 +15,7 @@
     <string name="json_string_not_exists">No Json-String detected</string>
     <string name="newInfo">New Info</string>
     <string name="title_activity_main_info">MainInfo</string>
+    <string name="white">White</string>
+    <string name="black">Black</string>
+    <string name="main">Main</string>
 </resources>
