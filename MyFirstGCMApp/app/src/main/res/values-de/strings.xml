@@ -14,4 +14,7 @@
     <string name="black">Schwarz</string>
     <string name="json_string_not_exists">Kein Json-String vorhanden</string>
     <string name="newInfo">Neue Info</string>
+    <string name="title_activity_settings">Einstellungen</string>
+    <string name="json_string_refreshed">Alle Daten aktualisiert!</string>
+    <string name="new_json_string">Neue Nachricht empfangen!</string>
 </resources>

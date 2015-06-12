@@ -4,24 +4,20 @@ import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
-import android.bluetooth.BluetoothClass;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.view.View;
 
-import com.google.android.gms.fitness.data.Device;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
-import org.json.JSONException;
+import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 /**
  * Created by snowreporter on 06.05.2015.
@@ -49,28 +45,26 @@ public class GcmIntentService extends IntentService {
 
         String messageType = gcm.getMessageType(intent);
 
-        if(!extras.isEmpty()) {
-            message = extras.getString("m");
+        if (extras.toString() != null) {
+            if (!extras.isEmpty()) {
+                message = extras.getString("m");
 
-            if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
-                sendNotification("Send error: " + extras.toString());
-            }
-            else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
-                sendNotification("Deleted messages on server: " + extras.toString());
-            }
-            else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
-                for (int i=0; i<5; i++) {
-                    Log.i(TAG, "Working... " + (i+1) + "/5 @ " + SystemClock.elapsedRealtime());
-                    try {
-                        Thread.sleep(500);
+                if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
+                    sendNotification("Send error: " + extras.toString());
+                } else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
+                    sendNotification("Deleted messages on server: " + extras.toString());
+                } else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
+                    for (int i = 0; i < 5; i++) {
+                        Log.i(TAG, "Working... " + (i + 1) + "/5 @ " + SystemClock.elapsedRealtime());
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                        }
                     }
-                    catch (InterruptedException e) {
-                    }
+                    sendNotification("Received: " + extras.toString());
+                    Log.i(TAG, "Message: " + message);
+
                 }
-                sendNotification("Received: " + extras.toString());
-                Log.i(TAG, "Received: " + extras.toString());
-                Log.i(TAG, "Message: " + message);
-
             }
         }
 
@@ -105,52 +99,57 @@ public class GcmIntentService extends IntentService {
             inboxStyle.addLine(events[i]);
         }
 
-        final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+        final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
+
+        if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
+            mBuilder
                 .setSmallIcon(R.drawable.ic_stat_gcm)
+                .setSound(alarmSound)
                 .setContentTitle("GCM Notification")
                 .setContentText(msg)
-                .setSound(alarmSound)
                 .setAutoCancel(true)
+                .setContentIntent(contentIntent)
+                .setStyle(textStyle)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setTicker("new GCM")
-                .setLights(0xFFAAAA00, 200, 2000)
-                .setStyle(textStyle)
-                .setContentIntent(contentIntent);
+                .setLights(0xFFAAAA00, 200, 2000);
 
-        if (Build.VERSION.SDK_INT >= 21) {
-            mBuilder
+            if (Build.VERSION.SDK_INT >= 21) {
+                mBuilder
                     .setCategory(Notification.CATEGORY_MESSAGE)
                     .setVisibility(Notification.VISIBILITY_PUBLIC);
+            }
+
+            Log.i(TAG, "isInBackground = true --> send notification");
+        }
+        else {
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        synchronized (this) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    MainActivity.getNewMessage();
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            thread.start();
+
+            mBuilder
+                    .setSound(alarmSound);
+
+            Log.i(TAG, "isInBackground = false --> show toast");
         }
 
         Notification notification = mBuilder.build();
-        //MainActivity.refreshJSONString();
-
         mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
-        int notificationId = 0;
-        mNotificationManager.notify(notificationId, notification);
-/*
-        Thread thread = new Thread(){
-            @Override
-            public void run() {
-                try {
-                    synchronized (this){
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                MainActivity.refreshJSONString();
-                            }
-                        });
-                    }
-                }
-                catch (InterruptedException e){
-                    e.printStackTrace();
-                }
-            }
-        };
-        thread.start();*/
-
-        //MainActivity.refreshJSONString();
+        mNotificationManager.notify(NOTIFICATION_ID, notification);
     }
 }

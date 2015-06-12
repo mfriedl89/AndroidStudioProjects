@@ -1,37 +1,36 @@
 package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
 
-import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentTransaction;
+import android.app.ActivityManager;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.net.Uri;
+import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
-import android.provider.CalendarContract;
+import android.os.Build;
+import android.os.PowerManager;
 import android.speech.RecognizerIntent;
-import android.support.annotation.ColorInt;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.fitness.data.Device;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import com.loopj.android.http.AsyncHttpClient;
@@ -43,12 +42,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends ActionBarActivity {
-    public static final String EXTRA_MESSAGE = "message";
-    public static final String PROPERTY_REG_ID = "registration_id";
-    private static final String PROPERTY_APP_VERSION = "appVersion";
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
     static final String TAG = "GCMDemo";
@@ -56,7 +53,6 @@ public class MainActivity extends ActionBarActivity {
     static TextView mDisplay;
     GoogleCloudMessaging gcm;
     AtomicInteger msgId = new AtomicInteger();
-    SharedPreferences prefs;
     static Context context;
 
     String regid;
@@ -67,7 +63,10 @@ public class MainActivity extends ActionBarActivity {
     public static final String REG_ID = "regId";
     public static final String EMAIL_ID = "eMailId";
     EditText emailET;
+    static Button refreshButton;
     AsyncTask<Void, Void, String> createRegIdTask;
+
+    NotificationManager nm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,21 +74,9 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         mDisplay = (TextView) findViewById(R.id.display);
+        refreshButton = (Button) findViewById(R.id.refresh);
 
         context = getApplicationContext();
-
-/*        if (checkPlayServices()) {
-            gcm = GoogleCloudMessaging.getInstance(this);
-            regid = getRegistrationId(context);
-
-            if (regid.isEmpty()) {
-                registerInBackground();
-            }
-        }
-        else {
-            Log.i(TAG, "No valid Google Play Service APK found.");
-        }
-        Log.i(TAG, regid);*/
 
         prgDialog = new ProgressDialog(this);
         // Set Progress Dialog Text
@@ -103,15 +90,12 @@ public class MainActivity extends ActionBarActivity {
 
         emailET = (EditText) findViewById(R.id.email);
 
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        nm.cancelAll();
+        nm =  (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         //When Email ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(registrationId)) {
             Intent i = new Intent(context, MainActivity.class);
             i.putExtra("regId", registrationId);
-            //startActivity(i);
-            //finish();
         }
     }
 
@@ -120,8 +104,9 @@ public class MainActivity extends ActionBarActivity {
         super.onResume();
         checkPlayServices();
 
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         nm.cancelAll();
+        refreshJSONString();
+        refreshButton.setEnabled(false);
     }
 
     @Override
@@ -209,32 +194,55 @@ public class MainActivity extends ActionBarActivity {
         return true;
     }
 
-    private String getRegistrationId(Context context) {
-        final SharedPreferences prefs = getGCMPreferences(context);
-        String registrationId = prefs.getString(PROPERTY_REG_ID, "");
-        if (registrationId.isEmpty()) {
-            Log.i(TAG, "Registration not found.");
-            return "";
-        }
-        int registeredVersion = prefs.getInt(PROPERTY_APP_VERSION, Integer.MIN_VALUE);
-        int currentVersion = getAppVersion(context);
-        if (registeredVersion != currentVersion) {
-            Log.i(TAG, "App version changed.");
-            return "";
-        }
-        return registrationId;
-    }
-
-    private SharedPreferences getGCMPreferences(Context context) {
-        return getSharedPreferences(MainActivity.class.getSimpleName(), Context.MODE_PRIVATE);
-    }
-
-    private static int getAppVersion(Context context) {
+    public static boolean isAppInBackground() {
+        boolean isInBackground = true;
         try {
-            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return packageInfo.versionCode;
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException("Could not get package name: " + e);
+            if (context != null) {
+                ActivityManager activityManager = (ActivityManager) context.getSystemService(context.ACTIVITY_SERVICE);
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT_WATCH) {
+                    List<ActivityManager.RunningAppProcessInfo> runningProcesses = activityManager.getRunningAppProcesses();
+                    for (ActivityManager.RunningAppProcessInfo processInfo : runningProcesses) {
+                        if (processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                            for (String activeProcess : processInfo.pkgList) {
+                                if (activeProcess.equals(context.getPackageName())) {
+                                    isInBackground = false;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    List<ActivityManager.RunningTaskInfo> taskInfo = activityManager.getRunningTasks(1);
+                    ComponentName componentInfo = taskInfo.get(0).topActivity;
+                    if (componentInfo.getPackageName().equals(context.getPackageName())) {
+                        isInBackground = false;
+                    }
+                }
+            }
+            else {
+                Log.i(TAG, "isAppInBackground: context is null!");
+            }
+        }
+        catch (NullPointerException e) {
+            throw new RuntimeException("Could not get isInBackground: " + e);
+        }
+
+        return isInBackground;
+    }
+
+    public static boolean isScreenOn() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            DisplayManager dm = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            boolean screenOn = false;
+            for (Display display : dm.getDisplays()) {
+                if (display.getState() != Display.STATE_OFF) {
+                    screenOn = true;
+                }
+            }
+            return screenOn;
+        }
+        else {
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            return pm.isScreenOn();
         }
     }
 
@@ -304,8 +312,10 @@ public class MainActivity extends ActionBarActivity {
         else if (view == findViewById(R.id.clear)) {
             mDisplay.setText("");
         }
-        else if (view == findViewById(R.id.refresh)) {
+        else if (view == refreshButton) {
             refreshJSONString();
+            refreshButton.setEnabled(false);
+            nm.cancelAll();
         }
     }
 
@@ -321,16 +331,26 @@ public class MainActivity extends ActionBarActivity {
                                 GcmIntentService gcmIntentService = new GcmIntentService();
                                 String str = gcmIntentService.getMessage();
 
-                                if (!str.isEmpty()) {
-                                    try {
-                                        JSONObject jsonObject = new JSONObject(str);
-                                        String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
-                                        name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
-                                        mDisplay.setText(name);
-                                    } catch (JSONException e) {
-                                        Log.i(TAG, "JSONException: " + e);
+                                if (str != null) {
+                                    if (!str.isEmpty()) {
+                                        try {
+                                            JSONObject jsonObject = new JSONObject(str);
+                                            String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
+                                            name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
+                                            mDisplay.setText(name);
+                                        } catch (JSONException e) {
+                                            Log.i(TAG, "JSONException: " + e);
+                                        }
                                     }
-                                } else {
+                                    else {
+                                        try {
+                                            Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
+                                        } catch (Exception e) {
+                                            Log.i(TAG, "Exception: " + e);
+                                        }
+                                    }
+                                }
+                                else {
                                     try {
                                         Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
                                     } catch (Exception e) {
@@ -348,28 +368,7 @@ public class MainActivity extends ActionBarActivity {
         };
         thread.start();
 
-/*        GcmIntentService gcmIntentService = new GcmIntentService();
-        String str = gcmIntentService.getMessage();
-
-        if (!str.isEmpty()) {
-            try {
-                JSONObject jsonObject = new JSONObject(str);
-                String name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
-                name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
-                mDisplay.setText(name);
-            }
-            catch (JSONException e) {
-                Log.i(TAG, "JSONException: " + e);
-            }
-        }
-        else {
-            try {
-                Toast.makeText(context, context.getString(R.string.json_string_not_exists), Toast.LENGTH_LONG).show();
-            }
-            catch (Exception e) {
-                Log.i(TAG, "Exception: " + e);
-            }
-        }*/
+        Toast.makeText(context, context.getString(R.string.json_string_refreshed), Toast.LENGTH_LONG).show();
     }
 
 
@@ -473,8 +472,9 @@ public class MainActivity extends ActionBarActivity {
                 });
     }
 
-    public void onFragmentInteraction(Uri uri){
-        Toast toast = Toast.makeText(this, "New Button", Toast.LENGTH_SHORT);
-        toast.show();
+    public static void getNewMessage() {
+        Toast.makeText(context, context.getString(R.string.new_json_string), Toast.LENGTH_LONG).show();
+        Log.i(TAG, "getNewMessage --> show toast; " + context.getString(R.string.new_json_string));
+        refreshButton.setEnabled(true);
     }
 }
