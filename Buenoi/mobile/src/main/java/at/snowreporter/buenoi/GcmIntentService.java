@@ -1,4 +1,4 @@
-package at.myfirstgcmapp.snowreporter.myfirstgcmapp;
+package at.snowreporter.buenoi;
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -19,13 +19,13 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 /**
- * Created by snowreporter on 06.05.2015.
+ * Created by snowreporter on 01.07.2015.
  */
 public class GcmIntentService extends IntentService {
     public static final int NOTIFICATION_ID = 1;
     private NotificationManager mNotificationManager;
 
-    static final String TAG = "GCMDemo";
+    static final String TAG = "Buenoi";
 
     public GcmIntentService() {
         super("GcmIntentService");
@@ -76,9 +76,6 @@ public class GcmIntentService extends IntentService {
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
-        Intent settings = new Intent(this, MainInfo.class);
-        PendingIntent settinsIntent = PendingIntent.getActivity(this, 0, settings, 0);
-
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
@@ -89,10 +86,10 @@ public class GcmIntentService extends IntentService {
         NotificationCompat.InboxStyle inboxStyle =
                 new NotificationCompat.InboxStyle();
         String[] events = new String[6];
-// Sets a title for the Inbox in expanded layout
+        // Sets a title for the Inbox in expanded layout
         inboxStyle.setBigContentTitle("Event tracker details:");
 
-// Moves events into the expanded layout
+        // Moves events into the expanded layout
         for (int i = 0; i < events.length; i++) {
 
             inboxStyle.addLine(events[i]);
@@ -102,21 +99,21 @@ public class GcmIntentService extends IntentService {
 
         if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
             mBuilder
-                .setSmallIcon(R.drawable.ic_stat_gcm)
-                .setSound(alarmSound)
-                .setContentTitle("GCM Notification")
-                .setContentText(msg)
-                .setAutoCancel(true)
-                .setContentIntent(contentIntent)
-                .setStyle(textStyle)
-                .setPriority(Notification.PRIORITY_HIGH)
-                .setTicker("new GCM")
-                .setLights(0xFFAAAA00, 200, 2000);
+                    .setSmallIcon(getNotificationIcon())
+                    .setSound(alarmSound)
+                    .setContentTitle("Buenoi")
+                    .setContentText(msg)
+                    .setAutoCancel(true)
+                    .setContentIntent(contentIntent)
+                    .setStyle(textStyle)
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .setTicker("new Buenoi")
+                    .setLights(0xFFAAAA00, 200, 2000);
 
             if (Build.VERSION.SDK_INT >= 21) {
                 mBuilder
-                    .setCategory(Notification.CATEGORY_MESSAGE)
-                    .setVisibility(Notification.VISIBILITY_PUBLIC);
+                        .setCategory(Notification.CATEGORY_MESSAGE)
+                        .setVisibility(Notification.VISIBILITY_PUBLIC);
             }
 
             Log.i(TAG, "isInBackground = true --> send notification");
@@ -147,9 +144,13 @@ public class GcmIntentService extends IntentService {
             Log.i(TAG, "isInBackground = false --> show toast");
         }
 
-
         Notification notification = mBuilder.build();
         mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(NOTIFICATION_ID, notification);
+    }
+
+    private int getNotificationIcon() {
+        boolean whiteIcon = (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP);
+        return whiteIcon ? R.drawable.ic_action_event_note_white : R.drawable.ic_action_event_note;
     }
 }
