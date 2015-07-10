@@ -71,6 +71,7 @@ public class GcmIntentService extends IntentService {
     }
 
     private void sendNotification(String msg) {
+        Log.i(TAG, "sendNotification: " + msg);
         Context context = getApplicationContext();
 
         Intent intent = new Intent(this, MainActivity.class);

@@ -58,17 +58,17 @@ public class MainActivity extends ActionBarActivity {
     // Instance for GoogleCloudMessaging
     GoogleCloudMessaging gcm;
 
-    // Project number on Google server
-    String serverRegId;
+    // Registration ID of the device
+    String regId;
 
     // Instance of request params
     RequestParams params = new RequestParams();
 
-    // Stores the serverRegId on phone
-    public static final String SERVER_REG_ID = "serverRegId";
+    // Stores the regId on phone
+    public static final String REG_ID = "regId";
 
-    // Stores the eMailId on phone
-    public static final String EMAIL_ID = "eMailId";
+    // Stores the emailId on phone
+    public static final String EMAIL_ID = "emailId";
 
     // Email from input
     private String inputEmail = "";
@@ -87,9 +87,14 @@ public class MainActivity extends ActionBarActivity {
 
     // Logged in eMail
     TextView loggedInEMail;
+    String storedLoggedInEMail;
 
     // Set intent
     Intent intent;
+
+    //Stored preferences
+    String storedRegistraionId;
+    String storedEmailId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,8 +111,8 @@ public class MainActivity extends ActionBarActivity {
 
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
-        String storedRegistraionId = prefs.getString(SERVER_REG_ID, "");
-        String storedEMailId = prefs.getString(EMAIL_ID, "");
+        storedRegistraionId = prefs.getString(REG_ID, "");
+        storedEmailId = prefs.getString(EMAIL_ID, "");
 
         loggedInEMail = (TextView) findViewById(R.id.loggedInEMail);
 
@@ -117,14 +122,20 @@ public class MainActivity extends ActionBarActivity {
 
         //When Email ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(storedRegistraionId)) {
-            intent.putExtra(SERVER_REG_ID, storedRegistraionId);
+            intent.putExtra(REG_ID, storedRegistraionId);
         }
 
-        if (!TextUtils.isEmpty(storedEMailId)) {
-            intent.putExtra(EMAIL_ID, storedEMailId);
-
-            loggedInEMail.setText(intent.getStringExtra(EMAIL_ID));
+        if (!TextUtils.isEmpty(storedEmailId)) {
+            intent.putExtra(EMAIL_ID, storedEmailId);
+            storedLoggedInEMail = intent.getStringExtra(EMAIL_ID);
+            loggedInEMail.setText(storedLoggedInEMail);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkPlayServices();
     }
 
     @Override
@@ -275,8 +286,8 @@ public class MainActivity extends ActionBarActivity {
                     if (gcm == null) {
                         gcm = GoogleCloudMessaging.getInstance(context);
                     }
-                    serverRegId = gcm.register(ApplicationConstants.SENDER_ID);
-                    msg = "Registration ID :" + serverRegId;
+                    regId = gcm.register(ApplicationConstants.SENDER_ID);
+                    msg = "Registration ID :" + regId;
 
                 } catch (IOException ex) {
                     msg = "Error :" + ex.getMessage();
@@ -286,15 +297,15 @@ public class MainActivity extends ActionBarActivity {
 
             @Override
             protected void onPostExecute(String msg) {
-                if (!TextUtils.isEmpty(serverRegId)) {
+                if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
-                    storeRegIdinSharedPref(serverRegId, emailID);
+                    storeRegIdinSharedPref(regId, emailID);
                     Toast.makeText(
                             context,
                             "Registered with GCM Server successfully.\n\n"
                                     + msg, Toast.LENGTH_SHORT).show();
 
-                    loggedInEMail.setText(intent.getStringExtra(EMAIL_ID));
+                    loggedInEMail.setText(emailID);
 
                 } else {
                     Toast.makeText(
@@ -345,24 +356,23 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // Store  RegId and Email entered by User in SharedPref
-    private void storeRegIdinSharedPref(String serverRegIdregId,
+    private void storeRegIdinSharedPref(String regId,
                                         String emailID) {
-        Log.i(TAG, "REG - Before storeRegIdinSharedPref: " + serverRegIdregId + " " + emailID);
-
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(SERVER_REG_ID, serverRegId);
+        editor.putString(REG_ID, regId);
         editor.putString(EMAIL_ID, emailID);
         editor.commit();
-        storeRegIdinServer();
+        storeRegIdinServer(regId, emailID);
     }
 
     // Share RegID with GCM Server Application (Php)
-    private void storeRegIdinServer() {
+    private void storeRegIdinServer(String regId2, String emailId) {
         prgDialog.show();
-        params.put("regId", serverRegId);
+        params.put("regId", regId);
+        params.put("emailId", emailId);
 
-        Log.i(TAG, "REG - storeRegIdinServer: " + serverRegId + " ");
+        Log.i(TAG, "REG - ID: " + regId + " ");
 
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
@@ -382,7 +392,7 @@ public class MainActivity extends ActionBarActivity {
                                 Toast.LENGTH_LONG).show();
                         Intent i = new Intent(context,
                                 MainActivity.class);
-                        i.putExtra("serverRegId", serverRegId);
+                        i.putExtra("regId", regId);
 
                         //startActivity(i);
                         //finish();
@@ -421,6 +431,7 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
     }
+
     // New message is received
     public static void getNewMessage() {
         Toast.makeText(context, context.getString(R.string.new_json_string), Toast.LENGTH_LONG).show();

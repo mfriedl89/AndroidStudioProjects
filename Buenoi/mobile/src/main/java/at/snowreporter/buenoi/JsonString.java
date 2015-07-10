@@ -24,8 +24,7 @@ public class JsonString {
             if (!str.isEmpty()) {
                 try {
                     JSONObject jsonObject = new JSONObject(str);
-                    name = jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("ID");
-                    name += jsonObject.getJSONObject("glossary").getJSONObject("GlossDiv").getJSONObject("GlossList").getJSONObject("GlossEntry").getString("Abbrev");
+                    name = jsonObject.getString("greetMsg");
                 } catch (JSONException e) {
                     Log.i(TAG, "JSONException: " + e);
                 }

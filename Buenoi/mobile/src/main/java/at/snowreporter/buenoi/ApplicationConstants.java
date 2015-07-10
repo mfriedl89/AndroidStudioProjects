@@ -8,5 +8,5 @@ public class ApplicationConstants {
     static final String SENDER_ID = "620272038749";
 
     // Php Application URL to store Reg ID created
-    static final String APP_SERVER_URL = "http://151.236.10.250/markusf/gcm/gcm.php?shareRegId=true";
+    static final String APP_SERVER_URL = "http://151.236.10.250/markusf/insertuser.php"; //"http://151.236.10.250/markusf/gcm/gcm.php?shareRegId=true";
 }
