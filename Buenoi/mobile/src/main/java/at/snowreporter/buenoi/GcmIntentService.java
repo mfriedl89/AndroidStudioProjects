@@ -100,7 +100,6 @@ public class GcmIntentService extends IntentService {
 
         if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
             mBuilder
-                    .setSmallIcon(getNotificationIcon())
                     .setSound(alarmSound)
                     .setContentTitle("Buenoi")
                     .setContentText(msg)
@@ -109,7 +108,8 @@ public class GcmIntentService extends IntentService {
                     .setStyle(textStyle)
                     .setPriority(Notification.PRIORITY_HIGH)
                     .setTicker("new Buenoi")
-                    .setLights(0xFFAAAA00, 200, 2000);
+                    .setLights(0xFFAAAA00, 200, 2000)
+                    .setSmallIcon(getNotificationIcon(), 1);
 
             if (Build.VERSION.SDK_INT >= 21) {
                 mBuilder

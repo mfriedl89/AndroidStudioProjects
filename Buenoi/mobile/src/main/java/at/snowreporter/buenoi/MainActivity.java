@@ -1,7 +1,6 @@
 package at.snowreporter.buenoi;
 
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
@@ -39,6 +38,7 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
 import org.apache.http.Header;
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -86,8 +86,10 @@ public class MainActivity extends ActionBarActivity {
     boolean checkShowPassword = false;
 
     // Logged in eMail
+    TextView loggedInText;
     TextView loggedInEMail;
     String storedLoggedInEMail;
+    Button loggedInButton;
 
     // Set intent
     Intent intent;
@@ -114,7 +116,9 @@ public class MainActivity extends ActionBarActivity {
         storedRegistraionId = prefs.getString(REG_ID, "");
         storedEmailId = prefs.getString(EMAIL_ID, "");
 
+        loggedInText = (TextView) findViewById(R.id.loggedInText);
         loggedInEMail = (TextView) findViewById(R.id.loggedInEMail);
+        loggedInButton = (Button) findViewById(R.id.button_login);
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
@@ -129,6 +133,14 @@ public class MainActivity extends ActionBarActivity {
             intent.putExtra(EMAIL_ID, storedEmailId);
             storedLoggedInEMail = intent.getStringExtra(EMAIL_ID);
             loggedInEMail.setText(storedLoggedInEMail);
+            loggedInText.setVisibility(View.VISIBLE);
+            loggedInButton.setVisibility(View.INVISIBLE);
+        }
+        else {
+            storedLoggedInEMail = getString(R.string.nobodyLoggedIn);
+            loggedInEMail.setText(storedLoggedInEMail);
+            loggedInText.setVisibility(View.INVISIBLE);
+            loggedInButton.setVisibility(View.VISIBLE);
         }
     }
 
@@ -142,6 +154,16 @@ public class MainActivity extends ActionBarActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        // set the text for the login/logout-item
+        MenuItem item = menu.findItem(R.id.action_login_logout);
+        if (!TextUtils.isEmpty(storedEmailId)) {
+            item.setTitle(R.string.logout);
+        }
+        else {
+            item.setTitle(R.string.login);
+        }
+
         return true;
     }
 
@@ -160,7 +182,12 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_login_logout) {
-            login();
+            if (TextUtils.isEmpty(storedEmailId)) {
+                login();
+            }
+            else {
+                logout();
+            }
             return true;
         }
 
@@ -220,6 +247,11 @@ public class MainActivity extends ActionBarActivity {
                     loginAlertEditTextPassword.setSelection(loginAlertEditTextPassword.getText().length());                }
             }
         });
+    }
+
+    // User logout
+    private void logout() {
+        deregisterInBackground();
     }
 
     // checks if app is in background
@@ -306,7 +338,8 @@ public class MainActivity extends ActionBarActivity {
                                     + msg, Toast.LENGTH_SHORT).show();
 
                     loggedInEMail.setText(emailID);
-
+                    loggedInText.setVisibility(View.VISIBLE);
+                    loggedInButton.setVisibility(View.INVISIBLE);
                 } else {
                     Toast.makeText(
                             context,
@@ -316,6 +349,39 @@ public class MainActivity extends ActionBarActivity {
             }
         }.execute(null, null, null);
     }
+
+    private void deregisterInBackground() {
+        new AsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackground(Void... params) {
+                String msg = "";
+                try {
+                    if (gcm == null) {
+                        gcm = GoogleCloudMessaging.getInstance(context);
+                    }
+                    gcm.unregister();
+                } catch (IOException ex) {
+                    msg = "Error :" + ex.getMessage();
+                }
+                return msg;
+            }
+
+            @Override
+            protected void onPostExecute(String msg) {
+                deleteRegIdinSharedPref();
+                Toast.makeText(
+                        context,
+                        "Unregistered with GCM Server successfully.\n\n"
+                                + msg, Toast.LENGTH_SHORT).show();
+
+                loggedInEMail.setText(R.string.nobodyLoggedIn);
+                loggedInText.setVisibility(View.INVISIBLE);
+                loggedInButton.setVisibility(View.VISIBLE);
+                storedEmailId = "";
+            }
+        }.execute(null, null, null);
+    }
+
 
     // Check if play services are available
     private boolean checkPlayServices() {
@@ -366,6 +432,15 @@ public class MainActivity extends ActionBarActivity {
         storeRegIdinServer(regId, emailID);
     }
 
+    // Delete RegId and Email entered by User in SharedPref
+    private void deleteRegIdinSharedPref() {
+        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove(REG_ID);
+        editor.remove(EMAIL_ID);
+        editor.commit();
+    }
+
     // Share RegID with GCM Server Application (Php)
     private void storeRegIdinServer(String regId2, String emailId) {
         prgDialog.show();
@@ -376,7 +451,7 @@ public class MainActivity extends ActionBarActivity {
 
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
-        client.post(ApplicationConstants.APP_SERVER_URL, params,
+        client.post(ApplicationConstants.APP_SERVER_URL_INSERT_USER, params,
                 new AsyncHttpResponseHandler() {
                     // When the response returned by REST has Http
                     // response code '200'
