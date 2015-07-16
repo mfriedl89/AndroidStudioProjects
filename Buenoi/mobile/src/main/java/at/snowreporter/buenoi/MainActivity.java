@@ -157,14 +157,27 @@ public class MainActivity extends ActionBarActivity {
 
         // set the text for the login/logout-item
         MenuItem item = menu.findItem(R.id.action_login_logout);
-        if (!TextUtils.isEmpty(storedEmailId)) {
-            item.setTitle(R.string.logout);
-        }
-        else {
+        if (TextUtils.isEmpty(storedEmailId)) {
             item.setTitle(R.string.login);
         }
+        else {
+            item.setTitle(R.string.logout);
+        }
 
-        return true;
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(R.id.action_login_logout);
+        if (TextUtils.isEmpty(storedEmailId)) {
+            item.setTitle(R.string.login);
+        }
+        else {
+            item.setTitle(R.string.logout);
+        }
+
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -340,6 +353,7 @@ public class MainActivity extends ActionBarActivity {
                     loggedInEMail.setText(emailID);
                     loggedInText.setVisibility(View.VISIBLE);
                     loggedInButton.setVisibility(View.INVISIBLE);
+                    storedEmailId = emailID;
                 } else {
                     Toast.makeText(
                             context,
