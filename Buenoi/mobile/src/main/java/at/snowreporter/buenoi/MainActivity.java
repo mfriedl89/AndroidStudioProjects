@@ -38,10 +38,8 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
 import org.apache.http.Header;
-import org.w3c.dom.Text;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
@@ -70,6 +68,9 @@ public class MainActivity extends ActionBarActivity {
     // Stores the emailId on phone
     public static final String EMAIL_ID = "emailId";
 
+    // Stores the passwordId on phone
+    public static final String PASSWORD_ID = "passwordId";
+
     // Email from input
     private String inputEmail = "";
 
@@ -85,10 +86,9 @@ public class MainActivity extends ActionBarActivity {
     // Login -> show or don't show password (don't show is default)
     boolean checkShowPassword = false;
 
-    // Logged in eMail
     TextView loggedInText;
-    TextView loggedInEMail;
-    String storedLoggedInEMail;
+    TextView loggedInEmail;
+    String storedLoggedInEmail;
     Button loggedInButton;
 
     // Set intent
@@ -97,6 +97,7 @@ public class MainActivity extends ActionBarActivity {
     //Stored preferences
     String storedRegistraionId;
     String storedEmailId;
+    String storedPasswordId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,9 +116,10 @@ public class MainActivity extends ActionBarActivity {
 
         storedRegistraionId = prefs.getString(REG_ID, "");
         storedEmailId = prefs.getString(EMAIL_ID, "");
+        storedPasswordId = prefs.getString(PASSWORD_ID, "");
 
         loggedInText = (TextView) findViewById(R.id.loggedInText);
-        loggedInEMail = (TextView) findViewById(R.id.loggedInEMail);
+        loggedInEmail = (TextView) findViewById(R.id.loggedInEmail);
         loggedInButton = (Button) findViewById(R.id.button_login);
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -131,14 +133,14 @@ public class MainActivity extends ActionBarActivity {
 
         if (!TextUtils.isEmpty(storedEmailId)) {
             intent.putExtra(EMAIL_ID, storedEmailId);
-            storedLoggedInEMail = intent.getStringExtra(EMAIL_ID);
-            loggedInEMail.setText(storedLoggedInEMail);
+            storedLoggedInEmail = intent.getStringExtra(EMAIL_ID);
+            loggedInEmail.setText(storedLoggedInEmail);
             loggedInText.setVisibility(View.VISIBLE);
             loggedInButton.setVisibility(View.INVISIBLE);
         }
         else {
-            storedLoggedInEMail = getString(R.string.nobodyLoggedIn);
-            loggedInEMail.setText(storedLoggedInEMail);
+            storedLoggedInEmail = getString(R.string.nobodyLoggedIn);
+            loggedInEmail.setText(storedLoggedInEmail);
             loggedInText.setVisibility(View.INVISIBLE);
             loggedInButton.setVisibility(View.VISIBLE);
         }
@@ -235,6 +237,7 @@ public class MainActivity extends ActionBarActivity {
                 inputEmail = loginAlertEditTextEMail.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 loginDialog.cancel();
+                prgDialog.show();
                 idRegistration();
             }
         });
@@ -248,8 +251,7 @@ public class MainActivity extends ActionBarActivity {
                     loginAlertEditTextPassword.setInputType(InputType.TYPE_CLASS_TEXT |
                             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
 
-                }
-                else {
+                } else {
                     checkShowPassword = false;
                     loginAlertEditTextPassword.setInputType(InputType.TYPE_CLASS_TEXT |
                             InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -257,14 +259,24 @@ public class MainActivity extends ActionBarActivity {
                 loginAlertEditTextPassword.setTypeface(Typeface.DEFAULT);
 
                 if (loginAlertEditTextPassword.isFocused()) {
-                    loginAlertEditTextPassword.setSelection(loginAlertEditTextPassword.getText().length());                }
+                    loginAlertEditTextPassword.setSelection(loginAlertEditTextPassword.getText().length());
+                }
             }
         });
     }
 
     // User logout
     private void logout() {
-        deregisterInBackground();
+        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+
+        String deleteRegId = prefs.getString(REG_ID, "");
+        String deleteEmailId = prefs.getString(EMAIL_ID, "");
+
+        Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - email id: " + deleteEmailId);
+
+        prgDialog.show();
+
+        deregisterInBackground(deleteRegId, deleteEmailId);
     }
 
     // checks if app is in background
@@ -322,7 +334,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // AsyncTask to register Device in GCM Server
-    private void registerInBackground(final String emailID) {
+    private void registerInBackground(final String emailId, final String passwordId) {
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -344,16 +356,11 @@ public class MainActivity extends ActionBarActivity {
             protected void onPostExecute(String msg) {
                 if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
-                    storeRegIdinSharedPref(regId, emailID);
+                    storeRegIdinSharedPref(regId, emailId, passwordId);
                     Toast.makeText(
                             context,
                             "Registered with GCM Server successfully.\n\n"
                                     + msg, Toast.LENGTH_SHORT).show();
-
-                    loggedInEMail.setText(emailID);
-                    loggedInText.setVisibility(View.VISIBLE);
-                    loggedInButton.setVisibility(View.INVISIBLE);
-                    storedEmailId = emailID;
                 } else {
                     Toast.makeText(
                             context,
@@ -364,7 +371,7 @@ public class MainActivity extends ActionBarActivity {
         }.execute(null, null, null);
     }
 
-    private void deregisterInBackground() {
+    private void deregisterInBackground(final String deleteRegId, final String deleteEmailId) {
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -382,13 +389,13 @@ public class MainActivity extends ActionBarActivity {
 
             @Override
             protected void onPostExecute(String msg) {
-                deleteRegIdinSharedPref();
+                deleteRegIdinSharedPref(deleteRegId, deleteEmailId);
                 Toast.makeText(
                         context,
-                        "Unregistered with GCM Server successfully.\n\n"
-                                + msg, Toast.LENGTH_SHORT).show();
+                        "Unregistered with GCM Server successfully."
+                        , Toast.LENGTH_SHORT).show();
 
-                loggedInEMail.setText(R.string.nobodyLoggedIn);
+                loggedInEmail.setText(R.string.nobodyLoggedIn);
                 loggedInText.setVisibility(View.INVISIBLE);
                 loggedInButton.setVisibility(View.VISIBLE);
                 storedEmailId = "";
@@ -403,8 +410,7 @@ public class MainActivity extends ActionBarActivity {
         if (resultColde != ConnectionResult.SUCCESS) {
             if (GooglePlayServicesUtil.isUserRecoverableError(resultColde)) {
                 GooglePlayServicesUtil.getErrorDialog(resultColde, this, PLAY_SERVICES_RESOLUTION_REQUEST).show();
-            }
-            else {
+            } else {
                 Toast.makeText(
                         context,
                         "This device doesn't support Play services, App will not work normally",
@@ -426,7 +432,7 @@ public class MainActivity extends ActionBarActivity {
             // Play services is needed to handle GCM stuffs
             if (checkPlayServices()) {
                 // Register Device in GCM Server
-                registerInBackground(inputEmail);
+                registerInBackground(inputEmail, inputPassword);
             }
         }
         // When Email is invalid
@@ -437,29 +443,32 @@ public class MainActivity extends ActionBarActivity {
 
     // Store  RegId and Email entered by User in SharedPref
     private void storeRegIdinSharedPref(String regId,
-                                        String emailID) {
+                                        String emailId, String passwordId) {
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(REG_ID, regId);
-        editor.putString(EMAIL_ID, emailID);
+        editor.putString(EMAIL_ID, emailId);
+        editor.putString(PASSWORD_ID, passwordId);
         editor.commit();
-        storeRegIdinServer(regId, emailID);
+        storeRegIdinServer(regId, emailId, passwordId);
     }
 
     // Delete RegId and Email entered by User in SharedPref
-    private void deleteRegIdinSharedPref() {
+    private void deleteRegIdinSharedPref(String deleteRegId, String deleteEmailId) {
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(REG_ID);
         editor.remove(EMAIL_ID);
+        editor.remove(PASSWORD_ID);
         editor.commit();
+        deleteRegIdinServer(deleteRegId, deleteEmailId);
     }
 
     // Share RegID with GCM Server Application (Php)
-    private void storeRegIdinServer(String regId2, String emailId) {
-        prgDialog.show();
+    private void storeRegIdinServer(String regId2, final String emailId, String passwordId) {
         params.put("regId", regId);
         params.put("emailId", emailId);
+        params.put("passwordId", passwordId);
 
         Log.i(TAG, "REG - ID: " + regId + " ");
 
@@ -482,6 +491,76 @@ public class MainActivity extends ActionBarActivity {
                         Intent i = new Intent(context,
                                 MainActivity.class);
                         i.putExtra("regId", regId);
+
+                        loggedInEmail.setText(emailId);
+                        loggedInText.setVisibility(View.VISIBLE);
+                        loggedInButton.setVisibility(View.INVISIBLE);
+                        storedEmailId = emailId;
+
+                        //startActivity(i);
+                        //finish();
+                    }
+
+                    // When the response returned by REST has Http
+                    // response code other than '200' such as '404',
+                    // '500' or '403' etc
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                        // Hide Progress Dialog
+                        prgDialog.hide();
+                        if (prgDialog != null) {
+                            prgDialog.dismiss();
+                        }
+                        // When Http response code is '404'
+                        if (statusCode == 404) {
+                            Toast.makeText(context,
+                                    "Requested resource not found",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        // When Http response code is '500'
+                        else if (statusCode == 500) {
+                            Toast.makeText(context,
+                                    "Something went wrong at server end",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        // When Http response code other than 404, 500
+                        else {
+                            Toast.makeText(
+                                    context,
+                                    "Unexpected Error occcured! [Most common Error: Device might "
+                                            + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+    }
+
+    // Delete RegID in GCM Server Application (Php)
+    private void deleteRegIdinServer(final String deleteRegId, String deleteEmailId) {
+        params.put("regId", deleteRegId);
+        params.put("emailId", deleteEmailId);
+
+        Log.i(TAG, "DeleteRegIdinServer REG - ID: " + deleteRegId + " - EMAIL - ID: " + deleteEmailId);
+
+        // Make RESTful webservice call using AsyncHttpClient object
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.post(ApplicationConstants.APP_SERVER_URL_DELETE_USER, params,
+                new AsyncHttpResponseHandler() {
+                    // When the response returned by REST has Http
+                    // response code '200'
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                        // Hide Progress Dialog
+                        prgDialog.hide();
+                        if (prgDialog != null) {
+                            prgDialog.dismiss();
+                        }
+                        Toast.makeText(context,
+                                "Reg Id deleted successfully with Web App ",
+                                Toast.LENGTH_LONG).show();
+                        Intent i = new Intent(context,
+                                MainActivity.class);
+                        i.putExtra("regId", deleteRegId);
 
                         //startActivity(i);
                         //finish();
