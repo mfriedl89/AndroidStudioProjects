@@ -15,4 +15,6 @@
     <string name="showPassword">Show password</string>
     <string name="textLoggedIn">You are logged in as</string>
     <string name="nobodyLoggedIn">You are not logged in.</string>
+    <string name="enter_valid_password">Please enter valid password (minimum 4 characters )!</string>
+    <string name="enter_valid_email">Please enter valid email!</string>
 </resources>

@@ -425,19 +425,32 @@ public class MainActivity extends ActionBarActivity {
 
     // For ID registration on Login
     public void idRegistration() {
-
         if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail)) {
-
             // Check if Google Play Service is installed in Device
             // Play services is needed to handle GCM stuffs
-            if (checkPlayServices()) {
-                // Register Device in GCM Server
-                registerInBackground(inputEmail, inputPassword);
+
+            if (inputPassword.length() > 3) {
+
+                if (checkPlayServices()) {
+                    // Register Device in GCM Server
+                    registerInBackground(inputEmail, inputPassword);
+                }
+            }
+            else {
+                Toast.makeText(context, getString(R.string.enter_valid_password), Toast.LENGTH_LONG).show();
+                prgDialog.hide();
+                if (prgDialog != null) {
+                    prgDialog.dismiss();
+                }
             }
         }
         // When Email is invalid
         else {
-            Toast.makeText(context, "Please enter valid email", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, getString(R.string.enter_valid_email), Toast.LENGTH_LONG).show();
+            prgDialog.hide();
+            if (prgDialog != null) {
+                prgDialog.dismiss();
+            }
         }
     }
 
