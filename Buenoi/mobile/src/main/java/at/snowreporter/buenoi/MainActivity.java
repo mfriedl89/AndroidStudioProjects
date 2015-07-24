@@ -2,6 +2,9 @@ package at.snowreporter.buenoi;
 
 import android.app.ActivityManager;
 import android.app.Dialog;
+import android.app.DialogFragment;
+import android.app.FragmentManager;
+import android.app.ListFragment;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
@@ -94,7 +97,10 @@ public class MainActivity extends ActionBarActivity {
     Button loggedInButton;
 
     // Set intent
-    Intent intent;
+    Intent mainIntent;
+
+    // Set fragment
+    FragmentManager fragmentManager;
 
     //Stored preferences
     String storedRegistraionId;
@@ -126,19 +132,24 @@ public class MainActivity extends ActionBarActivity {
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        intent = new Intent(context, MainActivity.class);
+        mainIntent = new Intent(context, MainActivity.class);
 
         //When Email ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(storedRegistraionId)) {
-            intent.putExtra(REG_ID, storedRegistraionId);
+            mainIntent.putExtra(REG_ID, storedRegistraionId);
         }
 
         if (!TextUtils.isEmpty(storedEmailId)) {
-            intent.putExtra(EMAIL_ID, storedEmailId);
-            storedLoggedInEmail = intent.getStringExtra(EMAIL_ID);
+            /*mainIntent.putExtra(EMAIL_ID, storedEmailId);
+            storedLoggedInEmail = mainIntent.getStringExtra(EMAIL_ID);
             loggedInEmail.setText(storedLoggedInEmail);
             loggedInText.setVisibility(View.VISIBLE);
-            loggedInButton.setVisibility(View.INVISIBLE);
+            loggedInButton.setVisibility(View.INVISIBLE);*/
+            fragmentManager = getFragmentManager();
+
+            fragmentManager.beginTransaction()
+                    .replace(R.id.mainLayout, new MessageListFragment())
+                    .commit();
         }
         else {
             storedLoggedInEmail = getString(R.string.nobodyLoggedIn);
@@ -529,6 +540,12 @@ public class MainActivity extends ActionBarActivity {
         if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail) && inputPassword.length() > 3) {
             return true;
         }
+        else {
+            prgDialog.hide();
+            if (prgDialog != null) {
+                prgDialog.dismiss();
+            }
+        }
 
         return  false;
     }
@@ -580,16 +597,18 @@ public class MainActivity extends ActionBarActivity {
                         Toast.makeText(context,
                                 "Reg Id shared successfully with Web App ",
                                 Toast.LENGTH_LONG).show();
-                        Intent i = new Intent(context,
-                                MainActivity.class);
-                        i.putExtra("regId", regId);
+
+                        //i.putExtra("regId", regId);
 
                         loggedInEmail.setText(emailId);
                         loggedInText.setVisibility(View.VISIBLE);
                         loggedInButton.setVisibility(View.INVISIBLE);
                         storedEmailId = emailId;
 
-                        //startActivity(i);
+                        fragmentManager = getFragmentManager();
+                        fragmentManager.beginTransaction()
+                                .replace(R.id.mainLayout, new ListFragment())
+                                .commit();
                         //finish();
                     }
 
@@ -650,11 +669,10 @@ public class MainActivity extends ActionBarActivity {
                         Toast.makeText(context,
                                 "Reg Id deleted successfully with Web App ",
                                 Toast.LENGTH_LONG).show();
-                        Intent i = new Intent(context,
-                                MainActivity.class);
-                        i.putExtra("regId", deleteRegId);
 
-                        //startActivity(i);
+                        //mainIntent.putExtra("regId", deleteRegId);
+
+                        startActivity(mainIntent);
                         //finish();
                     }
 

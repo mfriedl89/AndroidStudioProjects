@@ -5,7 +5,7 @@ android {
     buildToolsVersion "22.0.1"
 
     defaultConfig {
-        applicationId "at.snowreporter.buenoi"
+        applicationId "at.snowreporter.buenoimasterdetail"
         minSdkVersion 15
         targetSdkVersion 22
         versionCode 1
@@ -21,10 +21,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    wearApp project(':wear')
-
     compile 'com.android.support:appcompat-v7:22.2.0'
-    compile 'com.google.android.gms:play-services:7.5.0'
-    compile 'com.loopj.android:android-async-http:1.4.6'
     compile 'com.android.support:support-v4:22.2.0'
+    compile 'com.google.android.gms:play-services:7.5.0'
 }
