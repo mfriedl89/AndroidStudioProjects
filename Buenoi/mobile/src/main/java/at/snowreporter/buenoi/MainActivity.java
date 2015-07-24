@@ -1,5 +1,6 @@
 package at.snowreporter.buenoi;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
 import android.app.NotificationManager;
@@ -13,8 +14,8 @@ import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.PowerManager;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
@@ -42,7 +43,7 @@ import org.apache.http.Header;
 import java.io.IOException;
 import java.util.List;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
 
     // Requestcode for GooglePlayServicesUtil.getErrorDialog
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
@@ -54,13 +55,13 @@ public class MainActivity extends ActionBarActivity {
     static final String TAG = "Buenoi";
 
     // Instance for GoogleCloudMessaging
-    GoogleCloudMessaging gcm;
+    static GoogleCloudMessaging gcm;
 
     // Registration ID of the device
     String regId;
 
     // Instance of request params
-    RequestParams params = new RequestParams();
+    static RequestParams params = new RequestParams();
 
     // Stores the regId on phone
     public static final String REG_ID = "regId";
@@ -78,7 +79,7 @@ public class MainActivity extends ActionBarActivity {
     private String inputPassword = "";
 
     // Instance of a progress dialog
-    ProgressDialog prgDialog;
+    static ProgressDialog prgDialog;
 
     // Notification manager
     NotificationManager notificationManager;
@@ -86,17 +87,21 @@ public class MainActivity extends ActionBarActivity {
     // Login -> show or don't show password (don't show is default)
     boolean checkShowPassword = false;
 
-    TextView loggedInText;
-    TextView loggedInEmail;
+    static TextView loggedInText;
+    static TextView loggedInEmail;
     String storedLoggedInEmail;
-    Button loggedInButton;
+    static Button loggedInButton;
 
     // Set intent
-    Intent intent;
+    static Intent loginIntent;
+    static Intent messageIntent;
+
+    // Set activity at other activity
+    public static Activity activity;
 
     //Stored preferences
     String storedRegistraionId;
-    String storedEmailId;
+    static String storedEmailId;
     String storedPasswordId;
 
     @Override
@@ -108,7 +113,7 @@ public class MainActivity extends ActionBarActivity {
 
         prgDialog = new ProgressDialog(this);
         // Set Progress Dialog Text
-        prgDialog.setMessage("Please wait...");
+        prgDialog.setMessage(getString(R.string.prg_dialog_messagetext));
         // Set Cancelable as False
         prgDialog.setCancelable(false);
 
@@ -124,19 +129,23 @@ public class MainActivity extends ActionBarActivity {
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        intent = new Intent(context, MainActivity.class);
+        loginIntent = new Intent(context, MainActivity.class);
 
         //When Email ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(storedRegistraionId)) {
-            intent.putExtra(REG_ID, storedRegistraionId);
+            loginIntent.putExtra(REG_ID, storedRegistraionId);
         }
 
         if (!TextUtils.isEmpty(storedEmailId)) {
-            intent.putExtra(EMAIL_ID, storedEmailId);
-            storedLoggedInEmail = intent.getStringExtra(EMAIL_ID);
+            loginIntent.putExtra(EMAIL_ID, storedEmailId);
+            storedLoggedInEmail = loginIntent.getStringExtra(EMAIL_ID);
             loggedInEmail.setText(storedLoggedInEmail);
             loggedInText.setVisibility(View.VISIBLE);
             loggedInButton.setVisibility(View.INVISIBLE);
+
+            messageIntent = new Intent(context, MessageListActivity.class);
+            startActivity(messageIntent);
+            finish();
         }
         else {
             storedLoggedInEmail = getString(R.string.nobodyLoggedIn);
@@ -159,12 +168,7 @@ public class MainActivity extends ActionBarActivity {
 
         // set the text for the login/logout-item
         MenuItem item = menu.findItem(R.id.action_login_logout);
-        if (TextUtils.isEmpty(storedEmailId)) {
-            item.setTitle(R.string.login);
-        }
-        else {
-            item.setTitle(R.string.logout);
-        }
+        item.setTitle(R.string.login);
 
         return super.onCreateOptionsMenu(menu);
     }
@@ -172,12 +176,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         MenuItem item = menu.findItem(R.id.action_login_logout);
-        if (TextUtils.isEmpty(storedEmailId)) {
-            item.setTitle(R.string.login);
-        }
-        else {
-            item.setTitle(R.string.logout);
-        }
+        item.setTitle(R.string.login);
 
         return super.onPrepareOptionsMenu(menu);
     }
@@ -197,12 +196,7 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         else if (id == R.id.action_login_logout) {
-            if (TextUtils.isEmpty(storedEmailId)) {
-                login();
-            }
-            else {
-                logout();
-            }
+            login();
             return true;
         }
 
@@ -266,15 +260,15 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // User logout
-    private void logout() {
-        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+    public static void logout() {
+        SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
         String deleteRegId = prefs.getString(REG_ID, "");
         String deleteEmailId = prefs.getString(EMAIL_ID, "");
 
         Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - email id: " + deleteEmailId);
 
-        prgDialog.show();
+        //prgDialog.show();
 
         deregisterInBackground(deleteRegId, deleteEmailId);
     }
@@ -371,7 +365,7 @@ public class MainActivity extends ActionBarActivity {
         }.execute(null, null, null);
     }
 
-    private void deregisterInBackground(final String deleteRegId, final String deleteEmailId) {
+    private static void deregisterInBackground(final String deleteRegId, final String deleteEmailId) {
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -467,8 +461,8 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // Delete RegId and Email entered by User in SharedPref
-    private void deleteRegIdinSharedPref(String deleteRegId, String deleteEmailId) {
-        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+    private static void deleteRegIdinSharedPref(String deleteRegId, String deleteEmailId) {
+        SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(REG_ID);
         editor.remove(EMAIL_ID);
@@ -510,8 +504,9 @@ public class MainActivity extends ActionBarActivity {
                         loggedInButton.setVisibility(View.INVISIBLE);
                         storedEmailId = emailId;
 
-                        //startActivity(i);
-                        //finish();
+                        messageIntent = new Intent(context, MessageListActivity.class);
+                        startActivity(messageIntent);
+                        finish();
                     }
 
                     // When the response returned by REST has Http
@@ -549,7 +544,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // Delete RegID in GCM Server Application (Php)
-    private void deleteRegIdinServer(final String deleteRegId, String deleteEmailId) {
+    private static void deleteRegIdinServer(final String deleteRegId, String deleteEmailId) {
         params.put("regId", deleteRegId);
         params.put("emailId", deleteEmailId);
 
@@ -575,8 +570,12 @@ public class MainActivity extends ActionBarActivity {
                                 MainActivity.class);
                         i.putExtra("regId", deleteRegId);
 
-                        //startActivity(i);
-                        //finish();
+                        //context.getApplicationContext().startActivity(loginIntent);
+
+                        loginIntent = new Intent(context, MainActivity.class);
+                        loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(loginIntent);
+                        activity.finish();
                     }
 
                     // When the response returned by REST has Http
