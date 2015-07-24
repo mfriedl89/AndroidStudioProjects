@@ -10,7 +10,8 @@
         android:ems="10"
         android:id="@+id/loginEMail"
         android:hint="@string/email"
-        android:typeface="normal" />
+        android:typeface="normal"
+        android:imeOptions="actionNext" />
 
     <EditText
         android:layout_width="match_parent"
@@ -19,7 +20,8 @@
         android:ems="10"
         android:id="@+id/loginPassword"
         android:hint="@string/password"
-        android:typeface="normal" />
+        android:typeface="normal"
+        android:imeOptions="actionDone" />
 
     <CheckBox
         android:layout_width="wrap_content"
@@ -44,7 +46,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/login"
-            android:id="@+id/loginButtonLogin" />
+            android:id="@+id/loginButtonLogin"
+            android:enabled="false" />
     </TableRow>
 
 </LinearLayout>
