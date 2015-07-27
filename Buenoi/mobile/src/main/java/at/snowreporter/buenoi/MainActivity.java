@@ -20,9 +20,11 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -216,7 +218,8 @@ public class MainActivity extends AppCompatActivity {
         loginAlertEditTextPassword.setTypeface(Typeface.DEFAULT);
         CheckBox loginAlertCheckBoxShowPassword = (CheckBox) loginDialog.findViewById(R.id.loginShowPassword);
         final Button loginAlertButtonCancel = (Button) loginDialog.findViewById(R.id.loginButtonCancel);
-        Button loginAlertButtonLogin = (Button) loginDialog.findViewById(R.id.loginButtonLogin);
+        final Button loginAlertButtonLogin = (Button) loginDialog.findViewById(R.id.loginButtonLogin);
+        loginAlertButtonLogin.setEnabled(false);
 
         loginAlertButtonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -228,8 +231,6 @@ public class MainActivity extends AppCompatActivity {
         loginAlertButtonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                inputEmail = loginAlertEditTextEMail.getText().toString();
-                inputPassword = loginAlertEditTextPassword.getText().toString();
                 loginDialog.cancel();
                 prgDialog.show();
                 idRegistration();
@@ -254,6 +255,67 @@ public class MainActivity extends AppCompatActivity {
 
                 if (loginAlertEditTextPassword.isFocused()) {
                     loginAlertEditTextPassword.setSelection(loginAlertEditTextPassword.getText().length());
+                }
+            }
+        });
+
+        // Check user input - keyboard action
+        loginAlertEditTextEMail.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean handled = false;
+                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                    Log.i(TAG, "Email Input - Next clicked");
+
+                    if (checkEmailPassword()) {
+                        loginAlertButtonLogin.setEnabled(true);
+                        handled = true;
+                    }
+                }
+
+                return handled;
+            }
+        });
+
+        loginAlertEditTextPassword.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean handled = false;
+                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    Log.i(TAG, "Password Input - Done clicked");
+
+                    if (checkEmailPassword()) {
+                        loginAlertButtonLogin.setEnabled(true);
+                        handled = true;
+                    }
+                }
+                return handled;
+            }
+        });
+
+        // Check user input - focus changed
+        loginAlertEditTextEMail.setOnFocusChangeListener(new EditText.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (checkEmailPassword()) {
+                    loginAlertButtonLogin.setEnabled(true);
+                }
+            }
+        });
+
+        loginAlertEditTextPassword.setOnFocusChangeListener(new EditText.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (checkEmailPassword()) {
+                    loginAlertButtonLogin.setEnabled(true);
                 }
             }
         });
@@ -419,7 +481,15 @@ public class MainActivity extends AppCompatActivity {
 
     // For ID registration on Login
     public void idRegistration() {
-        if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail)) {
+        if (checkEmailPassword()) {
+            // Check if Google Play Service is installed in Device
+            // Play services is needed to handle GCM stuffs
+            if (checkPlayServices()) {
+                // Register Device in GCM Server
+                registerInBackground(inputEmail, inputPassword);
+            }
+        }
+        /* if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail)) {
             // Check if Google Play Service is installed in Device
             // Play services is needed to handle GCM stuffs
 
@@ -445,7 +515,15 @@ public class MainActivity extends AppCompatActivity {
             if (prgDialog != null) {
                 prgDialog.dismiss();
             }
+        }*/
+    }
+
+    private boolean checkEmailPassword() {
+        if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail) && inputPassword.length() > 3) {
+            return true;
         }
+
+        return  false;
     }
 
     // Store  RegId and Email entered by User in SharedPref
