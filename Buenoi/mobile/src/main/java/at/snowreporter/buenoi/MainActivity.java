@@ -391,9 +391,12 @@ public class MainActivity extends AppCompatActivity {
 
     // AsyncTask to register Device in GCM Server
     private void registerInBackground(final String emailId, final String passwordId) {
+        Log.i(TAG, "Registration in background - Start.");
+
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
+                Log.i(TAG, "Registration in background - Do in background.");
                 String msg = "";
                 try {
                     if (gcm == null) {
@@ -410,6 +413,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(String msg) {
+                Log.i(TAG, "Registration in background - On post execute.");
                 if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
                     storeRegIdinSharedPref(regId, emailId, passwordId);
@@ -420,8 +424,12 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(
                             context,
-                            "Reg ID Creation Failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time."
+                            "Reg ID Creation Failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time.\n"
                                     + msg, Toast.LENGTH_LONG).show();
+                    prgDialog.hide();
+                    if (prgDialog != null) {
+                        prgDialog.dismiss();
+                    }
                 }
             }
         }.execute(null, null, null);
@@ -619,6 +627,9 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+
+        Log.i(TAG, "AsyncHttpClient: " + client.toString());
+
     }
 
     // Delete RegID in GCM Server Application (Php)

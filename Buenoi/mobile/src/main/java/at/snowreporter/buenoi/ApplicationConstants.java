@@ -1,5 +1,8 @@
 package at.snowreporter.buenoi;
 
+import java.sql.Time;
+import java.util.Date;
+
 /**
  * Created by snowreporter on 22.05.2015.
  */
