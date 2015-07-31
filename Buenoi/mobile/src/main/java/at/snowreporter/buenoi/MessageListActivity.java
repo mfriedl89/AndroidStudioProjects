@@ -8,6 +8,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import at.snowreporter.buenoi.database.Message;
+import at.snowreporter.buenoi.database.MessageRepo;
 
 
 /**

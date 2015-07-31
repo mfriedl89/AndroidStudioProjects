@@ -46,7 +46,7 @@ import org.apache.http.Header;
 import java.io.IOException;
 import java.util.List;
 
-import at.snowreporter.buenoi.datebase.MyDatabaseHelper;
+import at.snowreporter.buenoi.database.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -720,8 +720,8 @@ public class MainActivity extends AppCompatActivity {
         login();
     }
 
+    /*
     // database
-
     private void addMessage(String date, String time, String type, String comment) {
         ContentValues values = new ContentValues();
         values.put(MyDatabaseHelper.COL_DATE, date);
@@ -729,12 +729,6 @@ public class MainActivity extends AppCompatActivity {
         values.put(MyDatabaseHelper.COL_TYPE, type);
         values.put(MyDatabaseHelper.COL_COMMENT, comment);
 
-        try {
-            myDatabaseHelper.insert(MyDatabaseHelper.TABLE_MESSAGES, values);
-        } catch (MyDatabaseHelper.NotValidException e) {
-            Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
-            Log.i(TAG, "Database Insert: " + e.getMessage());
-
-        }
-    }
+        myDatabaseHelper.insert(MyDatabaseHelper.TABLE_MESSAGES, values);
+    }*/
 }
