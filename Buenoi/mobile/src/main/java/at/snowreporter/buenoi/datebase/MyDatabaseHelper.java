@@ -2,6 +2,7 @@ package at.snowreporter.buenoi.datebase;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -43,19 +44,47 @@ public class MyDatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public long insert(String tableName, ContentValues values) {
+    public long insert(String tableName, ContentValues values) throws NotValidException{
+        validate(values);
+
         return getWritableDatabase().insert(tableName, null, values);
     }
 
-    public int update(String tableName, long id, ContentValues values) {
+    public int update(String tableName, long id, ContentValues values) throws NotValidException{
+        validate(values);
+
         String selection = COL_ID + " = ?";
         String[] selectionArgs = {String.valueOf(id)};
         return getWritableDatabase().update(tableName, values, selection, selectionArgs);
+    }
+
+    protected void validate(ContentValues values) throws NotValidException {
+        if (!values.containsKey(COL_DATE) || values.getAsString(COL_TIME) == null ||
+                values.getAsString(COL_TYPE) == null || values.getAsString(COL_COMMENT) == null) {
+            throw new NotValidException("No all values set");
+        }
+    }
+
+    public static class NotValidException extends Throwable {
+        public NotValidException(String msg) {
+            super(msg);
+        }
     }
 
     public int delete(String tableName, long id) {
         String selection = COL_ID + " = ?";
         String[] selectionArgs = {String.valueOf(id)};
         return getWritableDatabase().delete(tableName, selection, selectionArgs);
+    }
+
+    public Cursor fetch() {
+        String[] columns = new String[] {MyDatabaseHelper.COL_ID, MyDatabaseHelper.COL_DATE,
+                MyDatabaseHelper.COL_TIME, MyDatabaseHelper.COL_TYPE, MyDatabaseHelper.COL_COMMENT};
+        Cursor cursor = getWritableDatabase().query(MyDatabaseHelper.TABLE_MESSAGES, columns, null, null, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+        }
+
+        return cursor;
     }
 }

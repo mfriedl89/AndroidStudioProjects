@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -44,6 +45,8 @@ import org.apache.http.Header;
 
 import java.io.IOException;
 import java.util.List;
+
+import at.snowreporter.buenoi.datebase.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -106,6 +109,9 @@ public class MainActivity extends AppCompatActivity {
     static String storedEmailId;
     String storedPasswordId;
 
+    // Database
+    private MyDatabaseHelper myDatabaseHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -155,6 +161,9 @@ public class MainActivity extends AppCompatActivity {
             loggedInText.setVisibility(View.INVISIBLE);
             loggedInButton.setVisibility(View.VISIBLE);
         }
+
+        // database
+        myDatabaseHelper = new MyDatabaseHelper(context);
     }
 
     @Override
@@ -709,5 +718,23 @@ public class MainActivity extends AppCompatActivity {
 
     public void buttonLogin(View view) {
         login();
+    }
+
+    // database
+
+    private void addMessage(String date, String time, String type, String comment) {
+        ContentValues values = new ContentValues();
+        values.put(MyDatabaseHelper.COL_DATE, date);
+        values.put(MyDatabaseHelper.COL_TIME, time);
+        values.put(MyDatabaseHelper.COL_TYPE, type);
+        values.put(MyDatabaseHelper.COL_COMMENT, comment);
+
+        try {
+            myDatabaseHelper.insert(MyDatabaseHelper.TABLE_MESSAGES, values);
+        } catch (MyDatabaseHelper.NotValidException e) {
+            Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.i(TAG, "Database Insert: " + e.getMessage());
+
+        }
     }
 }
