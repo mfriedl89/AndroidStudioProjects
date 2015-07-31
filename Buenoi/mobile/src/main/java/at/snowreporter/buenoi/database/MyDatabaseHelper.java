@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  */
 
 // TODO: EXAMPLE http://blog.chrisblunt.com/android-getting-started-with-databases-and-contentproviders-part-1/
+// TODO: EXAMPLE 2 http://instinctcoder.com/android-studio-sqlite-database-example/
 
 public class MyDatabaseHelper extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "buenoi_database.db";
