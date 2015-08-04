@@ -15,6 +15,7 @@ import java.io.StringReader;
 import at.snowreporter.buenoi.database.Message;
 import at.snowreporter.buenoi.database.MessageRepo;
 import at.snowreporter.buenoi.dummy.DummyContent;
+import at.snowreporter.buenoi.message.MessageContent;
 
 /**
  * A fragment representing a single Message detail screen.
@@ -32,8 +33,10 @@ public class MessageDetailFragment extends Fragment {
     /**
      * The dummy content this fragment is presenting.
      */
-    private DummyContent.DummyItem mItem;
+    //private DummyContent.DummyItem mItem; --------------------------------------------------------
 
+
+    private MessageContent.MessageItem mItem;
     private int _Message_Id = 0;
     private Message message = new Message();
 
@@ -59,7 +62,9 @@ public class MessageDetailFragment extends Fragment {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
-            mItem = DummyContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID));
+            // mItem = DummyContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID)); -----------
+
+            mItem = MessageContent.MESSAGE_MAP.get(getArguments().getString(ARG_ITEM_ID));
         }
     }
 
@@ -70,12 +75,10 @@ public class MessageDetailFragment extends Fragment {
 
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
-            // TODO: Uncomment
-            //((TextView) rootView.findViewById(R.id.message_detail)).setText(mItem.content);
-            ((TextView) rootView.findViewById(R.id.textViewDate)).setText(mItem.content);//message.date);
-            ((TextView) rootView.findViewById(R.id.textViewTime)).setText(mItem.content);//message.time);
-            ((TextView) rootView.findViewById(R.id.textViewType)).setText(mItem.content);//message.type);
-            ((TextView) rootView.findViewById(R.id.textViewComment)).setText(mItem.content);//message.comment);
+            ((TextView) rootView.findViewById(R.id.textViewDate)).setText(mItem.date);//message.date);
+            ((TextView) rootView.findViewById(R.id.textViewTime)).setText(mItem.time);//message.time);
+            ((TextView) rootView.findViewById(R.id.textViewType)).setText(mItem.type);//message.type);
+            ((TextView) rootView.findViewById(R.id.textViewComment)).setText(mItem.comment);//message.comment);
         }
 
         return rootView;

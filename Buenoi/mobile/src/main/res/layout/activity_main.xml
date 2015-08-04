@@ -25,8 +25,8 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_alignRight="@+id/loggedInEmail"
-        android:layout_alignEnd="@+id/loggedInEmail" />
+        android:layout_alignRight="@+id/loggedInUsername"
+        android:layout_alignEnd="@+id/loggedInUsername" />
 
     <TextView
         android:layout_width="match_parent"
@@ -40,7 +40,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/loggedInEmail"
+        android:id="@+id/loggedInUsername"
         android:layout_below="@+id/loggedInText"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"

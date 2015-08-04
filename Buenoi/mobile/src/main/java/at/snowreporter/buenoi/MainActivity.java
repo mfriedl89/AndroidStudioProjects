@@ -17,8 +17,10 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -39,13 +41,18 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
+import com.loopj.android.http.TextHttpResponseHandler;
 
 import org.apache.http.Header;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.List;
 
+import at.snowreporter.buenoi.database.Message;
+import at.snowreporter.buenoi.database.MessageRepo;
 import at.snowreporter.buenoi.database.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
@@ -71,14 +78,14 @@ public class MainActivity extends AppCompatActivity {
     // Stores the regId on phone
     public static final String REG_ID = "regId";
 
-    // Stores the emailId on phone
-    public static final String EMAIL_ID = "emailId";
+    // Stores the usernameId on phone
+    public static final String USERNAME_ID = "usernameId";
 
     // Stores the passwordId on phone
     public static final String PASSWORD_ID = "passwordId";
 
-    // Email from input
-    private String inputEmail = "";
+    // Username from input
+    private String inputUsername = "";
 
     // Password from input
     private String inputPassword = "";
@@ -93,8 +100,8 @@ public class MainActivity extends AppCompatActivity {
     boolean checkShowPassword = false;
 
     static TextView loggedInText;
-    static TextView loggedInEmail;
-    String storedLoggedInEmail;
+    static TextView loggedInUsername;
+    String storedLoggedInUsername;
     static Button loggedInButton;
 
     // Set intent
@@ -106,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
 
     //Stored preferences
     String storedRegistraionId;
-    static String storedEmailId;
+    static String storedUsernameId;
     String storedPasswordId;
 
     // Database
-    private MyDatabaseHelper myDatabaseHelper;
+    private MessageRepo myMessageRepo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,26 +135,26 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
         storedRegistraionId = prefs.getString(REG_ID, "");
-        storedEmailId = prefs.getString(EMAIL_ID, "");
+        storedUsernameId = prefs.getString(USERNAME_ID, "");
         storedPasswordId = prefs.getString(PASSWORD_ID, "");
 
         loggedInText = (TextView) findViewById(R.id.loggedInText);
-        loggedInEmail = (TextView) findViewById(R.id.loggedInEmail);
+        loggedInUsername = (TextView) findViewById(R.id.loggedInUsername);
         loggedInButton = (Button) findViewById(R.id.button_login);
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         loginIntent = new Intent(context, MainActivity.class);
 
-        //When Email ID is set in Sharedpref, User will be taken to HomeActivity
+        //When Username-ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(storedRegistraionId)) {
             loginIntent.putExtra(REG_ID, storedRegistraionId);
         }
 
-        if (!TextUtils.isEmpty(storedEmailId)) {
-            loginIntent.putExtra(EMAIL_ID, storedEmailId);
-            storedLoggedInEmail = loginIntent.getStringExtra(EMAIL_ID);
-            loggedInEmail.setText(storedLoggedInEmail);
+        if (!TextUtils.isEmpty(storedUsernameId)) {
+            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
+            storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
+            loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.VISIBLE);
             loggedInButton.setVisibility(View.INVISIBLE);
 
@@ -156,14 +163,14 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
         else {
-            storedLoggedInEmail = getString(R.string.nobodyLoggedIn);
-            loggedInEmail.setText(storedLoggedInEmail);
+            storedLoggedInUsername = getString(R.string.nobodyLoggedIn);
+            loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.INVISIBLE);
             loggedInButton.setVisibility(View.VISIBLE);
         }
 
         // database
-        myDatabaseHelper = new MyDatabaseHelper(context);
+        myMessageRepo = new MessageRepo(context);
     }
 
     @Override
@@ -221,8 +228,8 @@ public class MainActivity extends AppCompatActivity {
         loginDialog.setContentView(R.layout.login_customdialog_layout);
         loginDialog.show();
 
-        final EditText loginAlertEditTextEMail = (EditText) loginDialog.findViewById(R.id.loginEMail);
-        loginAlertEditTextEMail.setTypeface(Typeface.DEFAULT);
+        final EditText loginAlertEditTextUsername = (EditText) loginDialog.findViewById(R.id.loginUsername);
+        loginAlertEditTextUsername.setTypeface(Typeface.DEFAULT);
         final EditText loginAlertEditTextPassword = (EditText) loginDialog.findViewById(R.id.loginPassword);
         loginAlertEditTextPassword.setTypeface(Typeface.DEFAULT);
         CheckBox loginAlertCheckBoxShowPassword = (CheckBox) loginDialog.findViewById(R.id.loginShowPassword);
@@ -269,22 +276,46 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Check user input - keyboard action
-        loginAlertEditTextEMail.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+        loginAlertEditTextUsername.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handled = false;
-                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputUsername = loginAlertEditTextUsername.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    Log.i(TAG, "Email Input - Next clicked");
+                    Log.i(TAG, "Username Input - Next clicked");
 
-                    if (checkEmailPassword()) {
+                    if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
                         handled = true;
                     }
                 }
 
                 return handled;
+            }
+        });
+
+        loginAlertEditTextUsername.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                inputUsername = loginAlertEditTextUsername.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (checkUsernamePassword()) {
+                    loginAlertButtonLogin.setEnabled(true);
+                }
+                else {
+                    loginAlertButtonLogin.setEnabled(false);
+                }
             }
         });
 
@@ -292,12 +323,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handled = false;
-                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputUsername = loginAlertEditTextUsername.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
+
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     Log.i(TAG, "Password Input - Done clicked");
 
-                    if (checkEmailPassword()) {
+                    if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
                         handled = true;
                     }
@@ -306,13 +338,37 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        loginAlertEditTextPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                inputUsername = loginAlertEditTextUsername.getText().toString();
+                inputPassword = loginAlertEditTextPassword.getText().toString();
+                if (checkUsernamePassword()) {
+                    loginAlertButtonLogin.setEnabled(true);
+                }
+                else {
+                    loginAlertButtonLogin.setEnabled(false);
+                }
+            }
+        });
+
         // Check user input - focus changed
-        loginAlertEditTextEMail.setOnFocusChangeListener(new EditText.OnFocusChangeListener() {
+        loginAlertEditTextUsername.setOnFocusChangeListener(new EditText.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputUsername = loginAlertEditTextUsername.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
-                if (checkEmailPassword()) {
+                if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
                 }
             }
@@ -321,9 +377,9 @@ public class MainActivity extends AppCompatActivity {
         loginAlertEditTextPassword.setOnFocusChangeListener(new EditText.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                inputEmail = loginAlertEditTextEMail.getText().toString();
+                inputUsername = loginAlertEditTextUsername.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
-                if (checkEmailPassword()) {
+                if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
                 }
             }
@@ -335,13 +391,13 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
         String deleteRegId = prefs.getString(REG_ID, "");
-        String deleteEmailId = prefs.getString(EMAIL_ID, "");
+        String deleteUsernameId = prefs.getString(USERNAME_ID, "");
 
-        Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - email id: " + deleteEmailId);
+        Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - username id: " + deleteUsernameId);
 
         //prgDialog.show();
 
-        deregisterInBackground(deleteRegId, deleteEmailId);
+        deregisterInBackground(deleteRegId, deleteUsernameId);
     }
 
     // checks if app is in background
@@ -399,7 +455,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // AsyncTask to register Device in GCM Server
-    private void registerInBackground(final String emailId, final String passwordId) {
+    private void registerInBackground(final String usernameId, final String passwordId) {
         Log.i(TAG, "Registration in background - Start.");
 
         new AsyncTask<Void, Void, String>() {
@@ -425,7 +481,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "Registration in background - On post execute.");
                 if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
-                    storeRegIdinSharedPref(regId, emailId, passwordId);
+                    storeRegIdinSharedPref(regId, usernameId, passwordId);
                     Toast.makeText(
                             context,
                             "Registered with GCM Server successfully.\n\n"
@@ -444,7 +500,7 @@ public class MainActivity extends AppCompatActivity {
         }.execute(null, null, null);
     }
 
-    private static void deregisterInBackground(final String deleteRegId, final String deleteEmailId) {
+    private static void deregisterInBackground(final String deleteRegId, final String deleteUsernameId) {
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -462,16 +518,16 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(String msg) {
-                deleteRegIdinSharedPref(deleteRegId, deleteEmailId);
+                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
                 Toast.makeText(
                         context,
                         "Unregistered with GCM Server successfully."
                         , Toast.LENGTH_SHORT).show();
 
-                loggedInEmail.setText(R.string.nobodyLoggedIn);
+                loggedInUsername.setText(R.string.nobodyLoggedIn);
                 loggedInText.setVisibility(View.INVISIBLE);
                 loggedInButton.setVisibility(View.VISIBLE);
-                storedEmailId = "";
+                storedUsernameId = "";
             }
         }.execute(null, null, null);
     }
@@ -498,86 +554,100 @@ public class MainActivity extends AppCompatActivity {
 
     // For ID registration on Login
     public void idRegistration() {
-        if (checkEmailPassword()) {
+        if (checkUsernamePassword()) {
             // Check if Google Play Service is installed in Device
             // Play services is needed to handle GCM stuffs
             if (checkPlayServices()) {
                 // Register Device in GCM Server
-                registerInBackground(inputEmail, inputPassword);
+                registerInBackground(inputUsername, inputPassword);
             }
         }
-        /* if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail)) {
-            // Check if Google Play Service is installed in Device
-            // Play services is needed to handle GCM stuffs
-
-            if (inputPassword.length() > 3) {
-
-                if (checkPlayServices()) {
-                    // Register Device in GCM Server
-                    registerInBackground(inputEmail, inputPassword);
-                }
-            }
-            else {
-                Toast.makeText(context, getString(R.string.enter_valid_password), Toast.LENGTH_LONG).show();
-                prgDialog.hide();
-                if (prgDialog != null) {
-                    prgDialog.dismiss();
-                }
-            }
-        }
-        // When Email is invalid
-        else {
-            Toast.makeText(context, getString(R.string.enter_valid_email), Toast.LENGTH_LONG).show();
-            prgDialog.hide();
-            if (prgDialog != null) {
-                prgDialog.dismiss();
-            }
-        }*/
     }
 
-    private boolean checkEmailPassword() {
-        if (!TextUtils.isEmpty(inputEmail) && Utility.validate(inputEmail) && inputPassword.length() > 3) {
+    private boolean checkUsernamePassword() {
+        if (!TextUtils.isEmpty(inputUsername) && inputPassword.length() > 3) {
             return true;
         }
 
         return  false;
     }
 
-    // Store  RegId and Email entered by User in SharedPref
+    // Store  RegId and Username entered by User in SharedPref
     private void storeRegIdinSharedPref(String regId,
-                                        String emailId, String passwordId) {
+                                        String usernameId, String passwordId) {
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(REG_ID, regId);
-        editor.putString(EMAIL_ID, emailId);
+        editor.putString(USERNAME_ID, usernameId);
         editor.putString(PASSWORD_ID, passwordId);
         editor.commit();
-        storeRegIdinServer(regId, emailId, passwordId);
+        storeRegIdinServer(regId, usernameId, passwordId);
     }
 
-    // Delete RegId and Email entered by User in SharedPref
-    private static void deleteRegIdinSharedPref(String deleteRegId, String deleteEmailId) {
+    // Delete RegId and Username entered by User in SharedPref
+    private static void deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
         SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(REG_ID);
-        editor.remove(EMAIL_ID);
+        editor.remove(USERNAME_ID);
         editor.remove(PASSWORD_ID);
         editor.commit();
-        deleteRegIdinServer(deleteRegId, deleteEmailId);
+        deleteRegIdinServer(deleteRegId, deleteUsernameId);
     }
 
     // Share RegID with GCM Server Application (Php)
-    private void storeRegIdinServer(String regId2, final String emailId, String passwordId) {
-        params.put("regId", regId);
-        params.put("emailId", emailId);
-        params.put("passwordId", passwordId);
-
+    private void storeRegIdinServer(String regId2, final String usernameId, String passwordId) {
         Log.i(TAG, "REG - ID: " + regId + " ");
 
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
-        client.post(ApplicationConstants.APP_SERVER_URL_INSERT_USER, params,
-                new AsyncHttpResponseHandler() {
+        String loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, usernameId, passwordId);
+
+        client.get(loginLink, new TextHttpResponseHandler() {
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+                // Hide Progress Dialog
+                prgDialog.hide();
+                if (prgDialog != null) {
+                    prgDialog.dismiss();
+                }
+                // When Http response code is '404'
+                if (statusCode == 404) {
+                    Toast.makeText(context,
+                            "Requested resource not found",
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(context,
+                            "Something went wrong at server end",
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code other than 404, 500
+                else {
+                    Toast.makeText(
+                            context,
+                            "Unexpected Error occcured! [Most common Error: Device might "
+                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well!",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                // Hide Progress Dialog
+                prgDialog.hide();
+                if (prgDialog != null) {
+                    prgDialog.dismiss();
+                }
+                Toast.makeText(context,
+                        "Reg Id shared successfully with Web App ",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+
+
+                /*client.post(loginLink, params, new AsyncHttpResponseHandler() {
                     // When the response returned by REST has Http
                     // response code '200'
                     @Override
@@ -594,10 +664,10 @@ public class MainActivity extends AppCompatActivity {
                                 MainActivity.class);
                         i.putExtra("regId", regId);
 
-                        loggedInEmail.setText(emailId);
+                        loggedInUsername.setText(usernameId);
                         loggedInText.setVisibility(View.VISIBLE);
                         loggedInButton.setVisibility(View.INVISIBLE);
-                        storedEmailId = emailId;
+                        storedUsernameId = usernameId;
 
                         messageIntent = new Intent(context, MessageListActivity.class);
                         startActivity(messageIntent);
@@ -635,18 +705,15 @@ public class MainActivity extends AppCompatActivity {
                                     Toast.LENGTH_LONG).show();
                         }
                     }
-                });
-
-        Log.i(TAG, "AsyncHttpClient: " + client.toString());
-
+                });*/
     }
 
     // Delete RegID in GCM Server Application (Php)
-    private static void deleteRegIdinServer(final String deleteRegId, String deleteEmailId) {
+    private static void deleteRegIdinServer(final String deleteRegId, String deleteUsernameId) {
         params.put("regId", deleteRegId);
-        params.put("emailId", deleteEmailId);
+        params.put("usernameId", deleteUsernameId);
 
-        Log.i(TAG, "DeleteRegIdinServer REG - ID: " + deleteRegId + " - EMAIL - ID: " + deleteEmailId);
+        Log.i(TAG, "DeleteRegIdinServer REG - ID: " + deleteRegId + " - Username - ID: " + deleteUsernameId);
 
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
@@ -720,15 +787,15 @@ public class MainActivity extends AppCompatActivity {
         login();
     }
 
-    /*
-    // database
-    private void addMessage(String date, String time, String type, String comment) {
-        ContentValues values = new ContentValues();
-        values.put(MyDatabaseHelper.COL_DATE, date);
-        values.put(MyDatabaseHelper.COL_TIME, time);
-        values.put(MyDatabaseHelper.COL_TYPE, type);
-        values.put(MyDatabaseHelper.COL_COMMENT, comment);
 
-        myDatabaseHelper.insert(MyDatabaseHelper.TABLE_MESSAGES, values);
-    }*/
+    // database
+    private void addMessage(Message message) {
+        ContentValues values = new ContentValues();
+        values.put(Message.COL_DATE, message.date);
+        values.put(Message.COL_TIME, message.time);
+        values.put(Message.COL_TYPE, message.type);
+        values.put(Message.COL_COMMENT, message.comment);
+
+        myMessageRepo.insert(message);
+    }
 }

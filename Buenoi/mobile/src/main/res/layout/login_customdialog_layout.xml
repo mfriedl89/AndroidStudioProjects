@@ -6,12 +6,12 @@
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="textEmailAddress"
+        android:inputType="text"
         android:ems="10"
-        android:id="@+id/loginEMail"
-        android:hint="@string/email"
+        android:id="@+id/loginUsername"
         android:typeface="normal"
-        android:imeOptions="actionNext" />
+        android:imeOptions="actionNext"
+        android:hint="@string/username" />
 
     <EditText
         android:layout_width="match_parent"

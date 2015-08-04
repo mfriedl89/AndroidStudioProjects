@@ -20,4 +20,5 @@
     <string name="title_message_list">Messages</string>
     <string name="title_message_detail">Message Detail</string>
     <string name="prg_dialog_messagetext">Please wait...</string>
+    <string name="username">Username</string>
 </resources>
