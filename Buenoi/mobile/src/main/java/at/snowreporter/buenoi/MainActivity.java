@@ -10,6 +10,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
@@ -40,20 +41,18 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
-import com.loopj.android.http.JsonHttpResponseHandler;
+
 import com.loopj.android.http.RequestParams;
 import com.loopj.android.http.TextHttpResponseHandler;
 
 import org.apache.http.Header;
-import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.KeyStore;
 import java.util.List;
 
 import at.snowreporter.buenoi.database.Message;
 import at.snowreporter.buenoi.database.MessageRepo;
-import at.snowreporter.buenoi.database.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -91,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
     private String inputPassword = "";
 
     // Instance of a progress dialog
-    static ProgressDialog prgDialog;
+    private static ProgressDialog prgDialog;
+    public static ProgressDialog prgDialogMessageListActivity;
 
     // Notification manager
     NotificationManager notificationManager;
@@ -99,9 +99,7 @@ public class MainActivity extends AppCompatActivity {
     // Login -> show or don't show password (don't show is default)
     boolean checkShowPassword = false;
 
-    static TextView loggedInText;
-    static TextView loggedInUsername;
-    String storedLoggedInUsername;
+    public static String storedLoggedInUsername;
     static Button loggedInButton;
 
     // Set intent
@@ -126,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
 
         context = getApplicationContext();
 
+        activity = this;
+
         prgDialog = new ProgressDialog(this);
         // Set Progress Dialog Text
         prgDialog.setMessage(getString(R.string.prg_dialog_messagetext));
@@ -138,10 +138,6 @@ public class MainActivity extends AppCompatActivity {
         storedUsernameId = prefs.getString(USERNAME_ID, "");
         storedPasswordId = prefs.getString(PASSWORD_ID, "");
 
-        loggedInText = (TextView) findViewById(R.id.loggedInText);
-        loggedInUsername = (TextView) findViewById(R.id.loggedInUsername);
-        loggedInButton = (Button) findViewById(R.id.button_login);
-
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         loginIntent = new Intent(context, MainActivity.class);
@@ -152,22 +148,22 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!TextUtils.isEmpty(storedUsernameId)) {
-            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
+/*            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
             storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.VISIBLE);
-            loggedInButton.setVisibility(View.INVISIBLE);
+            loggedInButton.setVisibility(View.INVISIBLE);*/
 
             messageIntent = new Intent(context, MessageListActivity.class);
             startActivity(messageIntent);
             finish();
         }
-        else {
+        /*else {
             storedLoggedInUsername = getString(R.string.nobodyLoggedIn);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.INVISIBLE);
             loggedInButton.setVisibility(View.VISIBLE);
-        }
+        }*/
 
         // database
         myMessageRepo = new MessageRepo(context);
@@ -210,7 +206,8 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         }
-        else if (id == R.id.action_help_feedback) {
+        else if (id == R.id.action_info) {
+            showInfo();
             return true;
         }
         else if (id == R.id.action_login_logout) {
@@ -219,6 +216,29 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public static void showInfo() {
+        final Dialog infoDialog = new Dialog(activity);
+        infoDialog.setTitle("Info");
+        infoDialog.setContentView(R.layout.activity_info);
+        infoDialog.show();
+
+        final TextView loggedInText = (TextView) infoDialog.findViewById(R.id.loggedInTextInfo);
+        final TextView loggedInUsername = (TextView) infoDialog.findViewById(R.id.loggedInUsernameInfo);
+
+        if (!TextUtils.isEmpty(storedUsernameId)) {
+            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
+            storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
+            loggedInUsername.setText(storedLoggedInUsername);
+            loggedInText.setVisibility(View.VISIBLE);
+        }
+        else {
+            storedLoggedInUsername = context.getResources().getString(R.string.nobodyLoggedIn);
+            loggedInUsername.setText(storedLoggedInUsername);
+            loggedInText.setVisibility(View.INVISIBLE);
+        }
+
     }
 
     // User login
@@ -395,8 +415,6 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - username id: " + deleteUsernameId);
 
-        //prgDialog.show();
-
         deregisterInBackground(deleteRegId, deleteUsernameId);
     }
 
@@ -481,15 +499,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "Registration in background - On post execute.");
                 if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
-                    storeRegIdinSharedPref(regId, usernameId, passwordId);
-                    Toast.makeText(
-                            context,
-                            "Registered with GCM Server successfully.\n\n"
-                                    + msg, Toast.LENGTH_SHORT).show();
+                    storeRegIdinServer(regId, usernameId, passwordId);
                 } else {
                     Toast.makeText(
                             context,
-                            "Reg ID Creation Failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time.\n"
+                            "Registration failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time.\n"
                                     + msg, Toast.LENGTH_LONG).show();
                     prgDialog.hide();
                     if (prgDialog != null) {
@@ -518,15 +532,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(String msg) {
-                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+                deleteRegIdinServer(deleteRegId, deleteUsernameId);
+
                 Toast.makeText(
                         context,
-                        "Unregistered with GCM Server successfully."
+                        "Logout was successfully."
                         , Toast.LENGTH_SHORT).show();
 
-                loggedInUsername.setText(R.string.nobodyLoggedIn);
-                loggedInText.setVisibility(View.INVISIBLE);
-                loggedInButton.setVisibility(View.VISIBLE);
                 storedUsernameId = "";
             }
         }.execute(null, null, null);
@@ -581,7 +593,12 @@ public class MainActivity extends AppCompatActivity {
         editor.putString(USERNAME_ID, usernameId);
         editor.putString(PASSWORD_ID, passwordId);
         editor.commit();
-        storeRegIdinServer(regId, usernameId, passwordId);
+
+        // Hide Progress Dialog
+        prgDialog.hide();
+        if (prgDialog != null) {
+            prgDialog.dismiss();
+        }
     }
 
     // Delete RegId and Username entered by User in SharedPref
@@ -592,16 +609,34 @@ public class MainActivity extends AppCompatActivity {
         editor.remove(USERNAME_ID);
         editor.remove(PASSWORD_ID);
         editor.commit();
-        deleteRegIdinServer(deleteRegId, deleteUsernameId);
+
+        // Hide Progress Dialog
+        prgDialogMessageListActivity.hide();
+        if (prgDialogMessageListActivity != null) {
+            prgDialogMessageListActivity.dismiss();
+        }
     }
 
     // Share RegID with GCM Server Application (Php)
-    private void storeRegIdinServer(String regId2, final String usernameId, String passwordId) {
-        Log.i(TAG, "REG - ID: " + regId + " ");
+    private void storeRegIdinServer(String regId2, final String usernameId, final String passwordId) {
+        String loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, usernameId, passwordId, regId);
+        Log.i(TAG, "storeRegIdinServer - loginLink: " + loginLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
         AsyncHttpClient client = new AsyncHttpClient();
-        String loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, usernameId, passwordId);
+
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
+            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setSSLSocketFactory(sf);
+        }
+        catch (Exception e) {
+            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
+        }
+
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
 
         client.get(loginLink, new TextHttpResponseHandler() {
             @Override
@@ -611,6 +646,94 @@ public class MainActivity extends AppCompatActivity {
                 if (prgDialog != null) {
                     prgDialog.dismiss();
                 }
+
+                Log.i(TAG, "storeRegIdinServer onFailure: " + statusCode);
+
+                // When Http response code is '400'
+                if (statusCode == 400) {
+                    Toast.makeText(context,
+                            "Username or Password is not correct!",
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '404'
+                else if (statusCode == 404) {
+                    Toast.makeText(context,
+                            "Requested resource not found",
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(context,
+                            "Something went wrong at server end",
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code other than 404, 500
+                else {
+                    Toast.makeText(
+                            context,
+                            "Unexpected Error occcured! [Most common Error: Device might "
+                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                Log.i(TAG, "storeRegIdinServer onSuccess: " + statusCode);
+
+                Toast.makeText(context,
+                        "Username shared successfully with Web App ",
+                        Toast.LENGTH_LONG).show();
+                Intent i = new Intent(context,
+                        MainActivity.class);
+                i.putExtra("regId", regId);
+
+                storedUsernameId = usernameId;
+
+                storeRegIdinSharedPref(regId, usernameId, passwordId);
+
+                messageIntent = new Intent(context, MessageListActivity.class);
+                startActivity(messageIntent);
+                finish();
+            }
+        });
+    }
+
+    // Delete RegID in GCM Server Application (Php)
+    private static void deleteRegIdinServer(final String deleteRegId, final String deleteUsernameId) {
+        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
+        Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
+
+        // Make RESTful webservice call using AsyncHttpClient object
+        AsyncHttpClient client = new AsyncHttpClient();
+
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
+            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setSSLSocketFactory(sf);
+        }
+        catch (Exception e) {
+            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
+        }
+
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+
+        client.get(logoutLink, new TextHttpResponseHandler() {
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+                Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode + ", " + responseString);
+
+                // When the response returned by REST has Http
+                // response code other than '200' such as '404',
+                // '500' or '403' etc
+                // Hide Progress Dialog
+                prgDialogMessageListActivity.hide();
+                if (prgDialogMessageListActivity != null) {
+                    prgDialogMessageListActivity.dismiss();
+                }
+
                 // When Http response code is '404'
                 if (statusCode == 404) {
                     Toast.makeText(context,
@@ -628,154 +751,32 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(
                             context,
                             "Unexpected Error occcured! [Most common Error: Device might "
-                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well!",
+                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well",
                             Toast.LENGTH_LONG).show();
                 }
+
+                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+
+                loginIntent = new Intent(context, MainActivity.class);
+                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(loginIntent);
+                activity.finish();
             }
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
-                // Hide Progress Dialog
-                prgDialog.hide();
-                if (prgDialog != null) {
-                    prgDialog.dismiss();
-                }
-                Toast.makeText(context,
-                        "Reg Id shared successfully with Web App ",
-                        Toast.LENGTH_LONG).show();
+                Log.i(TAG, "deleteRegIdinServer onSuccess: " + statusCode);
+
+                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+
+                loginIntent = new Intent(context, MainActivity.class);
+                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(loginIntent);
+                activity.finish();
             }
         });
-
-
-                /*client.post(loginLink, params, new AsyncHttpResponseHandler() {
-                    // When the response returned by REST has Http
-                    // response code '200'
-                    @Override
-                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                        // Hide Progress Dialog
-                        prgDialog.hide();
-                        if (prgDialog != null) {
-                            prgDialog.dismiss();
-                        }
-                        Toast.makeText(context,
-                                "Reg Id shared successfully with Web App ",
-                                Toast.LENGTH_LONG).show();
-                        Intent i = new Intent(context,
-                                MainActivity.class);
-                        i.putExtra("regId", regId);
-
-                        loggedInUsername.setText(usernameId);
-                        loggedInText.setVisibility(View.VISIBLE);
-                        loggedInButton.setVisibility(View.INVISIBLE);
-                        storedUsernameId = usernameId;
-
-                        messageIntent = new Intent(context, MessageListActivity.class);
-                        startActivity(messageIntent);
-                        finish();
-                    }
-
-                    // When the response returned by REST has Http
-                    // response code other than '200' such as '404',
-                    // '500' or '403' etc
-                    @Override
-                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                        // Hide Progress Dialog
-                        prgDialog.hide();
-                        if (prgDialog != null) {
-                            prgDialog.dismiss();
-                        }
-                        // When Http response code is '404'
-                        if (statusCode == 404) {
-                            Toast.makeText(context,
-                                    "Requested resource not found",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        // When Http response code is '500'
-                        else if (statusCode == 500) {
-                            Toast.makeText(context,
-                                    "Something went wrong at server end",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        // When Http response code other than 404, 500
-                        else {
-                            Toast.makeText(
-                                    context,
-                                    "Unexpected Error occcured! [Most common Error: Device might "
-                                            + "not be connected to Internet or remote server is not up and running], check for other errors as well",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });*/
     }
 
-    // Delete RegID in GCM Server Application (Php)
-    private static void deleteRegIdinServer(final String deleteRegId, String deleteUsernameId) {
-        params.put("regId", deleteRegId);
-        params.put("usernameId", deleteUsernameId);
-
-        Log.i(TAG, "DeleteRegIdinServer REG - ID: " + deleteRegId + " - Username - ID: " + deleteUsernameId);
-
-        // Make RESTful webservice call using AsyncHttpClient object
-        AsyncHttpClient client = new AsyncHttpClient();
-        client.post(ApplicationConstants.APP_SERVER_URL_DELETE_USER, params,
-                new AsyncHttpResponseHandler() {
-                    // When the response returned by REST has Http
-                    // response code '200'
-                    @Override
-                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                        // Hide Progress Dialog
-                        prgDialog.hide();
-                        if (prgDialog != null) {
-                            prgDialog.dismiss();
-                        }
-                        Toast.makeText(context,
-                                "Reg Id deleted successfully with Web App ",
-                                Toast.LENGTH_LONG).show();
-                        Intent i = new Intent(context,
-                                MainActivity.class);
-                        i.putExtra("regId", deleteRegId);
-
-                        //context.getApplicationContext().startActivity(loginIntent);
-
-                        loginIntent = new Intent(context, MainActivity.class);
-                        loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        context.startActivity(loginIntent);
-                        activity.finish();
-                    }
-
-                    // When the response returned by REST has Http
-                    // response code other than '200' such as '404',
-                    // '500' or '403' etc
-                    @Override
-                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                        // Hide Progress Dialog
-                        prgDialog.hide();
-                        if (prgDialog != null) {
-                            prgDialog.dismiss();
-                        }
-                        // When Http response code is '404'
-                        if (statusCode == 404) {
-                            Toast.makeText(context,
-                                    "Requested resource not found",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        // When Http response code is '500'
-                        else if (statusCode == 500) {
-                            Toast.makeText(context,
-                                    "Something went wrong at server end",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                        // When Http response code other than 404, 500
-                        else {
-                            Toast.makeText(
-                                    context,
-                                    "Unexpected Error occcured! [Most common Error: Device might "
-                                            + "not be connected to Internet or remote server is not up and running], check for other errors as well",
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
-    }
 
     // New message is received
     public static void getNewMessage() {

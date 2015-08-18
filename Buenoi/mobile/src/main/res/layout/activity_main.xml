@@ -17,35 +17,22 @@
         android:gravity="top|left|center_vertical|right" />
 
     <Button
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/login"
         android:id="@+id/button_login"
         android:onClick="buttonLogin"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignRight="@+id/loggedInUsername"
-        android:layout_alignEnd="@+id/loggedInUsername" />
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/textLoggedIn"
+        android:text="@string/textWelcome"
         android:id="@+id/loggedInText"
         android:layout_below="@+id/welcome"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/loggedInUsername"
-        android:layout_below="@+id/loggedInText"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:text="@string/nobodyLoggedIn" />
 
 </RelativeLayout>

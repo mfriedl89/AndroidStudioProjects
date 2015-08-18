@@ -20,7 +20,7 @@ public class MyPostNotificationReceiver extends BroadcastReceiver {
         Intent displayIntent = new Intent(context, MyDisplayActivity.class);
         String text = intent.getStringExtra(CONTENT_KEY);
         Notification notification = new Notification.Builder(context)
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.drawable.ic_full_cancel)
                 .setContentTitle(text)
                 .extend(new Notification.WearableExtender()
                         .setDisplayIntent(PendingIntent.getActivity(context, 0, displayIntent,

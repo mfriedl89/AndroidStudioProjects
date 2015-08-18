@@ -1,5 +1,6 @@
 package at.snowreporter.buenoi;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -13,6 +14,8 @@ import android.widget.TextView;
 
 import at.snowreporter.buenoi.database.Message;
 import at.snowreporter.buenoi.database.MessageRepo;
+
+import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 
 /**
@@ -46,6 +49,15 @@ public class MessageListActivity extends AppCompatActivity
         setContentView(R.layout.activity_message_list);
 
         MainActivity.activity = this;
+
+        MainActivity.context = this;
+
+        MainActivity.prgDialogMessageListActivity = new ProgressDialog(this);
+        // Set Progress Dialog Text
+        MainActivity.prgDialogMessageListActivity.setMessage(getString(R.string.prg_dialog_messagetext));
+        // Set Cancelable as False
+        MainActivity.prgDialogMessageListActivity.setCancelable(false);
+
 
         if (findViewById(R.id.message_detail_container) != null) {
             // The detail container view will be present only in the
@@ -95,11 +107,14 @@ public class MessageListActivity extends AppCompatActivity
         if (id == R.id.action_settings) {
             return true;
         }
-        else if (id == R.id.action_help_feedback) {
+        else if (id == R.id.action_info) {
+            MainActivity.showInfo();
             return true;
         }
         else if (id == R.id.action_login_logout) {
-                MainActivity.logout();
+            MainActivity.prgDialogMessageListActivity.show();
+            MainActivity.logout();
+
             return true;
         }
 
