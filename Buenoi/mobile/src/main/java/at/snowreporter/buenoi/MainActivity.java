@@ -10,7 +10,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
@@ -40,12 +39,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
-import com.loopj.android.http.AsyncHttpClient;
-
-import com.loopj.android.http.RequestParams;
-import com.loopj.android.http.TextHttpResponseHandler;
+import com.loopj.android.http.*;
 
 import org.apache.http.Header;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -69,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     static GoogleCloudMessaging gcm;
 
     // Registration ID of the device
-    String regId;
+    public static String regId;
 
     // Instance of request params
     static RequestParams params = new RequestParams();
@@ -148,22 +145,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!TextUtils.isEmpty(storedUsernameId)) {
-/*            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
-            storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
-            loggedInUsername.setText(storedLoggedInUsername);
-            loggedInText.setVisibility(View.VISIBLE);
-            loggedInButton.setVisibility(View.INVISIBLE);*/
-
             messageIntent = new Intent(context, MessageListActivity.class);
             startActivity(messageIntent);
             finish();
         }
-        /*else {
-            storedLoggedInUsername = getString(R.string.nobodyLoggedIn);
-            loggedInUsername.setText(storedLoggedInUsername);
-            loggedInText.setVisibility(View.INVISIBLE);
-            loggedInButton.setVisibility(View.VISIBLE);
-        }*/
 
         // database
         myMessageRepo = new MessageRepo(context);
@@ -204,13 +189,12 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            getUserSettings(regId);
             return true;
-        }
-        else if (id == R.id.action_info) {
+        } else if (id == R.id.action_info) {
             showInfo();
             return true;
-        }
-        else if (id == R.id.action_login_logout) {
+        } else if (id == R.id.action_login_logout) {
             login();
             return true;
         }
@@ -232,8 +216,7 @@ public class MainActivity extends AppCompatActivity {
             storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.VISIBLE);
-        }
-        else {
+        } else {
             storedLoggedInUsername = context.getResources().getString(R.string.nobodyLoggedIn);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.INVISIBLE);
@@ -332,8 +315,7 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
-                }
-                else {
+                } else {
                     loginAlertButtonLogin.setEnabled(false);
                 }
             }
@@ -375,8 +357,7 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
-                }
-                else {
+                } else {
                     loginAlertButtonLogin.setEnabled(false);
                 }
             }
@@ -442,12 +423,10 @@ public class MainActivity extends AppCompatActivity {
                         isInBackground = false;
                     }
                 }
-            }
-            else {
+            } else {
                 Log.i(TAG, "isAppInBackground: context is null!");
             }
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             throw new RuntimeException("Could not get isAppInBackground: " + e);
         }
 
@@ -465,8 +444,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             return screenOn;
-        }
-        else {
+        } else {
             PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
             return pm.isScreenOn();
         }
@@ -581,7 +559,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-        return  false;
+        return false;
     }
 
     // Store  RegId and Username entered by User in SharedPref
@@ -631,16 +609,44 @@ public class MainActivity extends AppCompatActivity {
             MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
             sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             client.setSSLSocketFactory(sf);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
         }
 
         client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":"+
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
 
-        client.get(loginLink, new TextHttpResponseHandler() {
+        client.post(loginLink, new AsyncHttpResponseHandler() {
             @Override
-            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+            public void onStart() {
+                super.onStart();
+                Log.i(TAG, "AsyncHttpClient Request starts!");
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Log.i(TAG, "storeRegIdinServer onSuccess: " + statusCode);
+
+                Toast.makeText(context,
+                        "Username shared successfully with Web App ",
+                        Toast.LENGTH_LONG).show();
+                Intent i = new Intent(context,
+                        MainActivity.class);
+                i.putExtra("regId", regId);
+
+                storedUsernameId = usernameId;
+
+                storeRegIdinSharedPref(regId, usernameId, passwordId);
+
+                messageIntent = new Intent(context, MessageListActivity.class);
+                startActivity(messageIntent);
+                finish();
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 // Hide Progress Dialog
                 prgDialog.hide();
                 if (prgDialog != null) {
@@ -676,32 +682,12 @@ public class MainActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG).show();
                 }
             }
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, String responseString) {
-                Log.i(TAG, "storeRegIdinServer onSuccess: " + statusCode);
-
-                Toast.makeText(context,
-                        "Username shared successfully with Web App ",
-                        Toast.LENGTH_LONG).show();
-                Intent i = new Intent(context,
-                        MainActivity.class);
-                i.putExtra("regId", regId);
-
-                storedUsernameId = usernameId;
-
-                storeRegIdinSharedPref(regId, usernameId, passwordId);
-
-                messageIntent = new Intent(context, MessageListActivity.class);
-                startActivity(messageIntent);
-                finish();
-            }
         });
     }
 
     // Delete RegID in GCM Server Application (Php)
     private static void deleteRegIdinServer(final String deleteRegId, final String deleteUsernameId) {
-        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
+        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT, deleteRegId);
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
@@ -713,17 +699,31 @@ public class MainActivity extends AppCompatActivity {
             MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
             sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             client.setSSLSocketFactory(sf);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
         }
 
         client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
 
-        client.get(logoutLink, new TextHttpResponseHandler() {
+        client.post(logoutLink, new AsyncHttpResponseHandler() {
             @Override
-            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-                Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode + ", " + responseString);
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Log.i(TAG, "deleteRegIdinServer - onSuccess: " + statusCode);
+
+                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+
+                loginIntent = new Intent(context, MainActivity.class);
+                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(loginIntent);
+                activity.finish();
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode);
 
                 // When the response returned by REST has Http
                 // response code other than '200' such as '404',
@@ -762,18 +762,6 @@ public class MainActivity extends AppCompatActivity {
                 context.startActivity(loginIntent);
                 activity.finish();
             }
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, String responseString) {
-                Log.i(TAG, "deleteRegIdinServer onSuccess: " + statusCode);
-
-                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
-
-                loginIntent = new Intent(context, MainActivity.class);
-                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(loginIntent);
-                activity.finish();
-            }
         });
     }
 
@@ -788,7 +776,6 @@ public class MainActivity extends AppCompatActivity {
         login();
     }
 
-
     // database
     private void addMessage(Message message) {
         ContentValues values = new ContentValues();
@@ -798,5 +785,40 @@ public class MainActivity extends AppCompatActivity {
         values.put(Message.COL_COMMENT, message.comment);
 
         myMessageRepo.insert(message);
+    }
+
+    public static void getUserSettings(String regId2) {
+        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS, regId2);
+        Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink);
+
+        // Make RESTful webservice call using AsyncHttpClient object
+        AsyncHttpClient client = new AsyncHttpClient();
+
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
+            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setSSLSocketFactory(sf);
+        } catch (Exception e) {
+            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
+        }
+
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+
+        client.get(getUserSettingsLink, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode);
+            }
+        });
     }
 }

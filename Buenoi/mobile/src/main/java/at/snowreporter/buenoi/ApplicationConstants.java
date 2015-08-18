@@ -14,8 +14,9 @@ public class ApplicationConstants {
     static final String BUENOI_USERNAME = "buenoi";
     static final String BUENOI_PASSWORD = "knedlbrot";
 
-    static final String APP_SERVER_USER_LOGIN = "https://test.buenoi.com/appapi/?controller=Session&action=login&benutzername=%s&kennwort=%s&cmd_login=1&gcm_id=%s";
-    static final String APP_SERVER_USER_LOGOUT = "https://test.buenoi.com/appapi/?controller=Session&action=logout";
+    static final String APP_SERVER_USER_LOGIN = "https://test.buenoi.com/appapi/?controller=Session&action=login&benutzername=%s&kennwort=%s&gcm_id=%s";
+    static final String APP_SERVER_USER_LOGOUT = "https://test.buenoi.com/appapi/?controller=Session&action=logout&gcm_id=%s";
+    static final String APP_SERVER_GET_USER_SETTINGS = "https://test.buenoi.com/appapi/?controller=NachrichtenEinstellungen&action=get&gcm_id=%s";
 
     // Php Application URL to store Reg ID created
     static final String APP_SERVER_URL_INSERT_USER = "http://151.236.10.250/markusf/insertuser.php"; //"http://151.236.10.250/markusf/gcm/gcm.php?shareRegId=true";

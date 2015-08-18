@@ -105,6 +105,7 @@ public class MessageListActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            MainActivity.getUserSettings(MainActivity.regId);
             return true;
         }
         else if (id == R.id.action_info) {
