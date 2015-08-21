@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
+import android.net.Credentials;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.PowerManager;
@@ -42,7 +43,9 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.loopj.android.http.*;
 
 import org.apache.http.Header;
-import org.json.JSONObject;
+import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.auth.*;
+import org.apache.http.impl.auth.BasicScheme;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -189,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            getUserSettings(regId);
+            getUserSettings();
             return true;
         } else if (id == R.id.action_info) {
             showInfo();
@@ -687,7 +690,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Delete RegID in GCM Server Application (Php)
     private static void deleteRegIdinServer(final String deleteRegId, final String deleteUsernameId) {
-        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT, deleteRegId);
+        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
@@ -787,8 +790,8 @@ public class MainActivity extends AppCompatActivity {
         myMessageRepo.insert(message);
     }
 
-    public static void getUserSettings(String regId2) {
-        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS, regId2);
+    public static void getUserSettings() {
+        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_STATUS);
         Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
@@ -799,26 +802,37 @@ public class MainActivity extends AppCompatActivity {
             trustStore.load(null, null);
             MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
             sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setTimeout(30*1000);
             client.setSSLSocketFactory(sf);
         } catch (Exception e) {
             Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
         }
 
-        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME,
+                ApplicationConstants.BUENOI_PASSWORD, true);
         client.addHeader("Authorization", "Basic " +
                 Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
 
-        client.get(getUserSettingsLink, new AsyncHttpResponseHandler() {
+
+
+        client.get(context, getUserSettingsLink, new TextHttpResponseHandler() {
             @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode);
+            public void onStart() {
+                Log.i(TAG, "getUserSettingsLink Request starts!");
             }
 
             @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode);
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode + ", " + responseString);
             }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+                Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode + ", " + responseString);
+            }
+
+
         });
     }
 }
