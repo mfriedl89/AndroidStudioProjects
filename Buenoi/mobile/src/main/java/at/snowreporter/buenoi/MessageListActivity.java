@@ -3,19 +3,9 @@ package at.snowreporter.buenoi;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.EditText;
-import android.widget.TextView;
-
-import at.snowreporter.buenoi.database.Message;
-import at.snowreporter.buenoi.database.MessageRepo;
-
-import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 
 /**
@@ -105,7 +95,7 @@ public class MessageListActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            MainActivity.getUserSettings();
+            MainActivity.showSettings();
             return true;
         }
         else if (id == R.id.action_info) {

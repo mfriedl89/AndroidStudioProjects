@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <CheckBoxPreference
+        android:key="instant_booking"
+        android:title="Instant booking"
+        android:defaultValue="false" />
+
+    <CheckBoxPreference
+        android:key="inquiry"
+        android:title="Inquiry"
+        android:defaultValue="false" />
+
+    <CheckBoxPreference
+        android:key="Inquiry_flat_rate"
+        android:title="Inquiry flat rate"
+        android:defaultValue="false" />
+
+</PreferenceScreen>

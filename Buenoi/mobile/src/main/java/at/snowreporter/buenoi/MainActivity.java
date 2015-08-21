@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
-import android.net.Credentials;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.PowerManager;
@@ -22,6 +21,7 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -43,9 +43,6 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.loopj.android.http.*;
 
 import org.apache.http.Header;
-import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.auth.*;
-import org.apache.http.impl.auth.BasicScheme;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -70,9 +67,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Registration ID of the device
     public static String regId;
-
-    // Instance of request params
-    static RequestParams params = new RequestParams();
 
     // Stores the regId on phone
     public static final String REG_ID = "regId";
@@ -105,14 +99,23 @@ public class MainActivity extends AppCompatActivity {
     // Set intent
     static Intent loginIntent;
     static Intent messageIntent;
+    static Intent settingsIntent;
 
     // Set activity at other activity
     public static Activity activity;
 
-    //Stored preferences
+    // Stored preferences
     String storedRegistraionId;
     static String storedUsernameId;
     String storedPasswordId;
+    Boolean instant_booking;
+    Boolean inquiry;
+    Boolean inquiry_flat_rate;
+
+    // Preferences
+    CheckBox prefInstantBooking;
+    CheckBox prefInquiry;
+    CheckBox prefInquiryFlatRate;
 
     // Database
     private MessageRepo myMessageRepo;
@@ -192,7 +195,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            getUserSettings();
+            settingsIntent = new Intent(this, SetPreferenceActivity.class);
+            startActivityForResult(settingsIntent, 0);
             return true;
         } else if (id == R.id.action_info) {
             showInfo();
@@ -203,6 +207,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void showSettings() {
+        getUserSettings();
     }
 
     public static void showInfo() {
@@ -618,7 +626,7 @@ public class MainActivity extends AppCompatActivity {
 
         client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
         client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":"+
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
 
         client.post(loginLink, new AsyncHttpResponseHandler() {
@@ -810,11 +818,6 @@ public class MainActivity extends AppCompatActivity {
 
         client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME,
                 ApplicationConstants.BUENOI_PASSWORD, true);
-        client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
-                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
-
-
 
         client.get(context, getUserSettingsLink, new TextHttpResponseHandler() {
             @Override
