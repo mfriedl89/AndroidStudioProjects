@@ -1,4 +1,4 @@
-package at.snowreporter.buenoi.message;
+package at.snowreporter.buenoi.database;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ public class MessageContent {
 
     }
 
-    private static void addMessageItem(MessageItem item) {
+    public static void addMessageItem(MessageItem item) {
         MESSAGES.add(item);
         MESSAGE_MAP.put(item.id, item);
     }

@@ -71,6 +71,8 @@ public class MessageListActivity extends AppCompatActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
+        MenuItem itemSettings = menu.findItem(R.id.action_settings);
+        itemSettings.setEnabled(true);
         // set the text for the login/logout-item
         MenuItem item = menu.findItem(R.id.action_login_logout);
         item.setTitle(R.string.logout);
@@ -80,8 +82,8 @@ public class MessageListActivity extends AppCompatActivity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem item = menu.findItem(R.id.action_login_logout);
-        item.setTitle(R.string.logout);
+        MenuItem itemLoginLogout = menu.findItem(R.id.action_login_logout);
+        itemLoginLogout.setTitle(R.string.logout);
 
         return super.onPrepareOptionsMenu(menu);
     }

@@ -20,4 +20,15 @@ public class Message {
     public String time;
     public String type;
     public String comment;
+
+    public Message() {
+
+    }
+
+    public Message(String dateCon, String timeCon, String typeCon, String commentCon) {
+        this.date = dateCon;
+        this.time = timeCon;
+        this.type = typeCon;
+        this.comment = commentCon;
+    }
 }

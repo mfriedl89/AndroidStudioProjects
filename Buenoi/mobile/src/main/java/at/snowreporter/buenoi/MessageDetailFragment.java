@@ -1,21 +1,15 @@
 package at.snowreporter.buenoi;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.TextView;
 
 
-import java.io.StringReader;
-
 import at.snowreporter.buenoi.database.Message;
-import at.snowreporter.buenoi.database.MessageRepo;
-import at.snowreporter.buenoi.dummy.DummyContent;
-import at.snowreporter.buenoi.message.MessageContent;
+import at.snowreporter.buenoi.database.MessageContent;
 
 /**
  * A fragment representing a single Message detail screen.

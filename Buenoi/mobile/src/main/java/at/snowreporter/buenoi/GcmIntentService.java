@@ -16,6 +16,8 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import at.snowreporter.buenoi.database.Message;
+
 import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 /**
@@ -79,10 +81,13 @@ public class GcmIntentService extends IntentService {
 
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
+        // Split messageString
+        Message message = MessageJsonString.splitMessage(msg);
+
         NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
         String longTextMessage = msg;
-        textStyle.bigText(longTextMessage);
-        textStyle.setSummaryText("The summary test goes here...");
+        textStyle.bigText(message.type);
+        textStyle.setSummaryText(message.comment);
 
         NotificationCompat.InboxStyle inboxStyle =
                 new NotificationCompat.InboxStyle();
@@ -92,7 +97,6 @@ public class GcmIntentService extends IntentService {
 
         // Moves events into the expanded layout
         for (int i = 0; i < events.length; i++) {
-
             inboxStyle.addLine(events[i]);
         }
 
@@ -102,7 +106,7 @@ public class GcmIntentService extends IntentService {
             mBuilder
                     .setSound(alarmSound)
                     .setContentTitle("Buenoi")
-                    .setContentText(msg)
+                    .setContentText(message.type)
                     .setAutoCancel(true)
                     .setContentIntent(contentIntent)
                     .setStyle(textStyle)
@@ -145,6 +149,7 @@ public class GcmIntentService extends IntentService {
             Log.i(TAG, "isInBackground = false --> show toast");
         }
 
+        MainActivity.addMessage(message);
         Notification notification = mBuilder.build();
         mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(NOTIFICATION_ID, notification);

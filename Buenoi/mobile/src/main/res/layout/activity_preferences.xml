@@ -1,0 +1,111 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="at.snowreporter.buenoi.PreferencesActivity"
+    android:id="@+id/Preferences">
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Instant booking arrived"
+        android:id="@+id/checkBox_instant_booking_arrived"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:checked="false" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Offer adopted"
+        android:id="@+id/checkBox_offer_adopted"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_instant_booking_arrived"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/checkBox_offer_rejected"
+        android:layout_alignEnd="@+id/checkBox_offer_rejected" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Offer rejected"
+        android:id="@+id/checkBox_offer_rejected"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_offer_adopted"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/checkBox_inquiry_arrived"
+        android:layout_alignEnd="@+id/checkBox_inquiry_arrived" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Inquiry arrived"
+        android:id="@+id/checkBox_inquiry_arrived"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_offer_rejected"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Old inbox messages"
+        android:id="@+id/checkBox_old_inbox_messages"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_inquiry_arrived"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/checkBox_inquiry_arrived"
+        android:layout_alignEnd="@+id/checkBox_inquiry_arrived" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Flat rate request arrived"
+        android:id="@+id/checkBox_flat_rate_request_arrived"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_old_inbox_messages"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/checkBox_old_inbox_messages"
+        android:layout_alignEnd="@+id/checkBox_old_inbox_messages" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Contact form"
+        android:id="@+id/checkBox_contact_form"
+        android:checked="false"
+        android:layout_below="@+id/checkBox_flat_rate_request_arrived"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/checkBox_flat_rate_request_arrived"
+        android:layout_alignEnd="@+id/checkBox_flat_rate_request_arrived" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save"
+        android:id="@+id/button_save"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:id="@+id/button_cancel"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@+id/button_save"
+        android:layout_toEndOf="@+id/button_save" />
+</RelativeLayout>

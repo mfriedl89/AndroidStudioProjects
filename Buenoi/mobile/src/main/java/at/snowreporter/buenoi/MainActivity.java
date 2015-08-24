@@ -68,15 +68,6 @@ public class MainActivity extends AppCompatActivity {
     // Registration ID of the device
     public static String regId;
 
-    // Stores the regId on phone
-    public static final String REG_ID = "regId";
-
-    // Stores the usernameId on phone
-    public static final String USERNAME_ID = "usernameId";
-
-    // Stores the passwordId on phone
-    public static final String PASSWORD_ID = "passwordId";
-
     // Username from input
     private String inputUsername = "";
 
@@ -99,26 +90,23 @@ public class MainActivity extends AppCompatActivity {
     // Set intent
     static Intent loginIntent;
     static Intent messageIntent;
-    static Intent settingsIntent;
+    static Intent preferencesIntent;
 
     // Set activity at other activity
     public static Activity activity;
 
-    // Stored preferences
-    String storedRegistraionId;
-    static String storedUsernameId;
-    String storedPasswordId;
-    Boolean instant_booking;
-    Boolean inquiry;
-    Boolean inquiry_flat_rate;
+    // Database
+    private static MessageRepo myMessageRepo;
+    private int _Message_Id = 0;
 
     // Preferences
-    CheckBox prefInstantBooking;
-    CheckBox prefInquiry;
-    CheckBox prefInquiryFlatRate;
+    public static Preferences myPreferences = new Preferences();
 
-    // Database
-    private MessageRepo myMessageRepo;
+    // AsyncHttpClient for web services
+    public static AsyncHttpClient client = new AsyncHttpClient();
+
+    // Cookies
+    static PersistentCookieStore myCookieStore = new PersistentCookieStore(context);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,33 +125,42 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
-        storedRegistraionId = prefs.getString(REG_ID, "");
-        storedUsernameId = prefs.getString(USERNAME_ID, "");
-        storedPasswordId = prefs.getString(PASSWORD_ID, "");
+        myPreferences.storedRegistraionId = prefs.getString(myPreferences.REG_ID, "");
+        myPreferences.storedUsernameId = prefs.getString(myPreferences.USERNAME_ID, "");
+        myPreferences.storedPasswordId = prefs.getString(myPreferences.PASSWORD_ID, "");
+        myPreferences.storedInstantBookingArrived = prefs.getBoolean(myPreferences.PREF_INSTANT_BOOKING_ARRIVED, false);
+        myPreferences.storedOfferAdopted = prefs.getBoolean(myPreferences.PREF_OFFER_ADOPTED, false);
+        myPreferences.storedOfferRejected = prefs.getBoolean(myPreferences.PREF_OFFER_REJECTED, false);
+        myPreferences.storedInquiryArrived = prefs.getBoolean(myPreferences.PREF_INQUIRY_ARRIVED, false);
+        myPreferences.storedOldInboxMessages = prefs.getBoolean(myPreferences.PREF_OLD_INBOX_MESSAGES, false);
+        myPreferences.storedFlatRateRequestArrived = prefs.getBoolean(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, false);
+        myPreferences.storedContactForm = prefs.getBoolean(myPreferences.PREF_CONTACT_FORM, false);
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         loginIntent = new Intent(context, MainActivity.class);
+        preferencesIntent = new Intent(context, PreferencesActivity.class);
 
         //When Username-ID is set in Sharedpref, User will be taken to HomeActivity
-        if (!TextUtils.isEmpty(storedRegistraionId)) {
-            loginIntent.putExtra(REG_ID, storedRegistraionId);
+        if (!TextUtils.isEmpty(myPreferences.storedRegistraionId)) {
+            loginIntent.putExtra(myPreferences.REG_ID, myPreferences.storedRegistraionId);
         }
 
-        if (!TextUtils.isEmpty(storedUsernameId)) {
+        if (!TextUtils.isEmpty(myPreferences.storedUsernameId)) {
             messageIntent = new Intent(context, MessageListActivity.class);
             startActivity(messageIntent);
             finish();
         }
 
         // database
-        myMessageRepo = new MessageRepo(context);
+        myMessageRepo = new MessageRepo(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         checkPlayServices();
+
     }
 
     @Override
@@ -171,9 +168,11 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
+        MenuItem itemSettings = menu.findItem(R.id.action_settings);
+        itemSettings.setEnabled(false);
         // set the text for the login/logout-item
-        MenuItem item = menu.findItem(R.id.action_login_logout);
-        item.setTitle(R.string.login);
+        MenuItem itemLoginLogout = menu.findItem(R.id.action_login_logout);
+        itemLoginLogout.setTitle(R.string.login);
 
         return super.onCreateOptionsMenu(menu);
     }
@@ -194,11 +193,7 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            settingsIntent = new Intent(this, SetPreferenceActivity.class);
-            startActivityForResult(settingsIntent, 0);
-            return true;
-        } else if (id == R.id.action_info) {
+        if (id == R.id.action_info) {
             showInfo();
             return true;
         } else if (id == R.id.action_login_logout) {
@@ -209,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void showSettings() {
+    public static void showSettings() {
         getUserSettings();
     }
 
@@ -222,9 +217,9 @@ public class MainActivity extends AppCompatActivity {
         final TextView loggedInText = (TextView) infoDialog.findViewById(R.id.loggedInTextInfo);
         final TextView loggedInUsername = (TextView) infoDialog.findViewById(R.id.loggedInUsernameInfo);
 
-        if (!TextUtils.isEmpty(storedUsernameId)) {
-            loginIntent.putExtra(USERNAME_ID, storedUsernameId);
-            storedLoggedInUsername = loginIntent.getStringExtra(USERNAME_ID);
+        if (!TextUtils.isEmpty(myPreferences.storedUsernameId)) {
+            loginIntent.putExtra(myPreferences.USERNAME_ID, myPreferences.storedUsernameId);
+            storedLoggedInUsername = loginIntent.getStringExtra(myPreferences.USERNAME_ID);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.VISIBLE);
         } else {
@@ -402,8 +397,8 @@ public class MainActivity extends AppCompatActivity {
     public static void logout() {
         SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
-        String deleteRegId = prefs.getString(REG_ID, "");
-        String deleteUsernameId = prefs.getString(USERNAME_ID, "");
+        String deleteRegId = prefs.getString(myPreferences.REG_ID, "");
+        String deleteUsernameId = prefs.getString(myPreferences.USERNAME_ID, "");
 
         Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - username id: " + deleteUsernameId);
 
@@ -528,7 +523,7 @@ public class MainActivity extends AppCompatActivity {
                         "Logout was successfully."
                         , Toast.LENGTH_SHORT).show();
 
-                storedUsernameId = "";
+                myPreferences.storedUsernameId = "";
             }
         }.execute(null, null, null);
     }
@@ -573,14 +568,14 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    // Store  RegId and Username entered by User in SharedPref
+    // Store RegId and Username/Passwort entered by User in SharedPref
     private void storeRegIdinSharedPref(String regId,
                                         String usernameId, String passwordId) {
         SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(REG_ID, regId);
-        editor.putString(USERNAME_ID, usernameId);
-        editor.putString(PASSWORD_ID, passwordId);
+        editor.putString(myPreferences.REG_ID, regId);
+        editor.putString(myPreferences.USERNAME_ID, usernameId);
+        editor.putString(myPreferences.PASSWORD_ID, passwordId);
         editor.commit();
 
         // Hide Progress Dialog
@@ -590,13 +585,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Store Preferences in SharedPref
+    public void storePreferencesInSharedPref() {
+
+    }
+
     // Delete RegId and Username entered by User in SharedPref
     private static void deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
         SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.remove(REG_ID);
-        editor.remove(USERNAME_ID);
-        editor.remove(PASSWORD_ID);
+        editor.remove(myPreferences.REG_ID);
+        editor.remove(myPreferences.USERNAME_ID);
+        editor.remove(myPreferences.PASSWORD_ID);
+        editor.remove(myPreferences.PREF_INSTANT_BOOKING_ARRIVED);
+        editor.remove(myPreferences.PREF_OFFER_ADOPTED);
+        editor.remove(myPreferences.PREF_OFFER_REJECTED);
+        editor.remove(myPreferences.PREF_INQUIRY_ARRIVED);
+        editor.remove(myPreferences.PREF_OLD_INBOX_MESSAGES);
+        editor.remove(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED);
+        editor.remove(myPreferences.PREF_CONTACT_FORM);
         editor.commit();
 
         // Hide Progress Dialog
@@ -612,8 +619,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "storeRegIdinServer - loginLink: " + loginLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
-        AsyncHttpClient client = new AsyncHttpClient();
-
         try {
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             trustStore.load(null, null);
@@ -628,6 +633,10 @@ public class MainActivity extends AppCompatActivity {
         client.addHeader("Authorization", "Basic " +
                 Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+        myCookieStore.clear();
+        client.setCookieStore(myCookieStore);
+
+        Log.i(TAG, "Cookies: " + myCookieStore.getCookies().toString());
 
         client.post(loginLink, new AsyncHttpResponseHandler() {
             @Override
@@ -647,7 +656,7 @@ public class MainActivity extends AppCompatActivity {
                         MainActivity.class);
                 i.putExtra("regId", regId);
 
-                storedUsernameId = usernameId;
+                myPreferences.storedUsernameId = usernameId;
 
                 storeRegIdinSharedPref(regId, usernameId, passwordId);
 
@@ -702,8 +711,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
-        AsyncHttpClient client = new AsyncHttpClient();
-
         try {
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             trustStore.load(null, null);
@@ -718,6 +725,7 @@ public class MainActivity extends AppCompatActivity {
         client.addHeader("Authorization", "Basic " +
                 Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+        client.setCookieStore(myCookieStore);
 
         client.post(logoutLink, new AsyncHttpResponseHandler() {
             @Override
@@ -725,6 +733,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "deleteRegIdinServer - onSuccess: " + statusCode);
 
                 deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+
+                myCookieStore.clear();
 
                 loginIntent = new Intent(context, MainActivity.class);
                 loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -788,7 +798,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // database
-    private void addMessage(Message message) {
+    public static void addMessage(Message message) {
         ContentValues values = new ContentValues();
         values.put(Message.COL_DATE, message.date);
         values.put(Message.COL_TIME, message.time);
@@ -799,11 +809,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void getUserSettings() {
-        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_STATUS);
+        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS);
         Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink);
 
         // Make RESTful webservice call using AsyncHttpClient object
-        AsyncHttpClient client = new AsyncHttpClient();
 
         try {
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -818,6 +827,10 @@ public class MainActivity extends AppCompatActivity {
 
         client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME,
                 ApplicationConstants.BUENOI_PASSWORD, true);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+        client.setCookieStore(myCookieStore);
 
         client.get(context, getUserSettingsLink, new TextHttpResponseHandler() {
             @Override
@@ -834,8 +847,6 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
                 Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode + ", " + responseString);
             }
-
-
         });
     }
 }
