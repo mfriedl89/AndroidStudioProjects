@@ -128,9 +128,6 @@ public class MessageRepo {
         Integer cnt = (int) DatabaseUtils.longForQuery(db, countQuery, null);
         db.close();
 
-        Log.i(TAG, "cnt: " + cnt);
-
-
         return cnt;
     }
 }

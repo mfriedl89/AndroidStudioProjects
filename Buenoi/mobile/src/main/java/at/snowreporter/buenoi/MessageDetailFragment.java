@@ -49,9 +49,6 @@ public class MessageDetailFragment extends Fragment {
             Integer diffItemId = MainActivity.myMessageRepo.getRowNumbers() -
                     Integer.parseInt(getArguments().getString(ARG_ITEM_ID)) + 1; // two times '+1' because id in table starts at 1
 
-            Log.i(TAG, "diffItemId: " + diffItemId);
-
-
             // Show selected Message in Detail View
             message = MainActivity.myMessageRepo.getMessageById(diffItemId);
         }
