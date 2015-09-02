@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 
 
 /**
@@ -34,6 +36,8 @@ public class MessageListActivity extends AppCompatActivity
      */
     private boolean mTwoPane;
 
+    public static TextView textViewNoMessage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +53,7 @@ public class MessageListActivity extends AppCompatActivity
         // Set Cancelable as False
         MainActivity.prgDialogMessageListActivity.setCancelable(false);
 
+        textViewNoMessage = (TextView)findViewById(R.id.textViewNoMessages);
 
         if (findViewById(R.id.message_detail_container) != null) {
             // The detail container view will be present only in the
@@ -62,6 +67,13 @@ public class MessageListActivity extends AppCompatActivity
             ((MessageListFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.message_list))
                     .setActivateOnItemClick(true);
+        }
+
+        if (MessageListFragment.myMessageItemAdapter.getCount() < 1) {
+            textViewNoMessage.setVisibility(View.VISIBLE);
+        }
+        else {
+            textViewNoMessage.setVisibility(View.INVISIBLE);
         }
     }
 

@@ -52,5 +52,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:background="#ffffffe6" />
+        android:background="#ffffffe6"
+        android:textSize="20dp"
+        android:scrollbars="vertical" />
 </RelativeLayout>

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.View;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class MessageListFragment extends ListFragment {
      * The fragment's current callback object, which is notified of list item
      * clicks.
      */
-    private Callbacks mCallbacks = sDummyCallbacks;
+    private Callbacks mCallbacks = messageCallbacks;
 
     /**
      * The current activated item position. Only used on tablets.
@@ -62,7 +63,7 @@ public class MessageListFragment extends ListFragment {
      * A dummy implementation of the {@link Callbacks} interface that does
      * nothing. Used only when this fragment is not attached to an activity.
      */
-    private static Callbacks sDummyCallbacks = new Callbacks() {
+    private static Callbacks messageCallbacks = new Callbacks() {
         @Override
         public void onItemSelected(String id) {
         }
@@ -112,7 +113,7 @@ public class MessageListFragment extends ListFragment {
         super.onDetach();
 
         // Reset the active callbacks interface to the dummy implementation.
-        mCallbacks = sDummyCallbacks;
+        mCallbacks = messageCallbacks;
     }
 
     @Override
@@ -161,5 +162,12 @@ public class MessageListFragment extends ListFragment {
         myMessageItemAdapter.clear();
         myMessageItemAdapter.addAll(myMessageList);
         myMessageItemAdapter.notifyDataSetChanged();
+
+        if (myMessageItemAdapter.getCount() < 1) {
+            MessageListActivity.textViewNoMessage.setVisibility(View.VISIBLE);
+        }
+        else {
+            MessageListActivity.textViewNoMessage.setVisibility(View.INVISIBLE);
+        }
     }
 }

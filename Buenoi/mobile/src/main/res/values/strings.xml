@@ -40,4 +40,5 @@
     <string name="flat_rate_request_arrived">Flat rate request arrived</string>
     <string name="contact_form">Contact form</string>
     <string name="save">Save</string>
+    <string name="no_message">No Message to show</string>
 </resources>

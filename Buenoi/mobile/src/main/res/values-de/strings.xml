@@ -3,7 +3,7 @@
     <string name="app_name">Buenoi</string>
     <string name="welcome">Willkommen</string>
     <string name="username">Benutzername</string>
-    <string name="title_message_list">Nachricht</string>
+    <string name="title_message_list">Nachrichten</string>
     <string name="title_message_detail">Nachricht Detail</string>
     <string name="title_activity_preferences">Einstellungen</string>
     <string name="textWelcome">Sie müssen sich anmelden, um den Benachrichtungsservice nützen zu können.</string>
@@ -41,4 +41,5 @@
     <string name="action_info">Informationen</string>
     <string name="settings">Einstellungen</string>
     <string name="title_activity_settings">Einstellungen</string>
+    <string name="no_message">Keine Nachrichten</string>
 </resources>

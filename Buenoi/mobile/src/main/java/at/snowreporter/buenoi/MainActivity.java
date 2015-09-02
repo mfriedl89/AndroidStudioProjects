@@ -819,8 +819,6 @@ public class MainActivity extends AppCompatActivity {
         myMessageRepo.insert(message);
 
         if (!isAppInBackground()) {
-
-
             MessageListFragment.refreshListView();
         }
     }
