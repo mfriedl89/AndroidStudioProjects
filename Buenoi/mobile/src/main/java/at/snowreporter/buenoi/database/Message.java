@@ -15,7 +15,7 @@ public class Message {
     public static final String COL_COMMENT = "comment";
 
     // Property help us to keep data
-    public int message_ID;
+    public Integer message_ID;
     public String date;
     public String time;
     public String type;

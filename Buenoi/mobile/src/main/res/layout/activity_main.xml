@@ -8,13 +8,21 @@
 
     <TextView
         android:text="@string/welcome"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/welcome"
-        android:textSize="60sp"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:gravity="top|left|center_vertical|right" />
+        android:gravity="top|center_vertical|bottom|center_horizontal"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="false"
+        android:layout_alignRight="@+id/loggedInText"
+        android:layout_alignEnd="@+id/loggedInText"
+        android:minHeight="40dp"
+        android:textIsSelectable="true"
+        android:layout_alignParentBottom="false"
+        android:layout_alignParentEnd="false"
+        android:elegantTextHeight="false"
+        android:textSize="50dp" />
 
     <Button
         android:layout_width="match_parent"
@@ -33,6 +41,8 @@
         android:id="@+id/loggedInText"
         android:layout_below="@+id/welcome"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:textSize="25dp"
+        android:gravity="center_horizontal" />
 
 </RelativeLayout>

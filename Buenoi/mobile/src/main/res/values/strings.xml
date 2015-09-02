@@ -1,21 +1,17 @@
 <resources>
     <string name="app_name">Buenoi</string>
-
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="settings">Settings</string>
     <string name="welcome">Welcome</string>
-    <string name="action_help_feedback"><![CDATA[Help & Feedback]]></string>
-    <string name="action_login">Login</string>
     <string name="new_json_string">New message received</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
     <string name="cancel">Cancel</string>
-    <string name="email">E-Mail</string>
+    <string name="email" translatable="false">E-Mail</string>
     <string name="password">Password</string>
     <string name="showPassword">Show password</string>
     <string name="textLoggedIn">You are logged in as</string>
     <string name="nobodyLoggedIn">You are not logged in.</string>
-    <string name="enter_valid_password">Please enter valid password (minimum 4 characters )!</string>
+    <string name="enter_valid_password">Please enter valid password!</string>
     <string name="enter_valid_email">Please enter valid email!</string>
     <string name="title_message_list">Messages</string>
     <string name="title_message_detail">Message Detail</string>
@@ -24,5 +20,24 @@
     <string name="action_info">Info</string>
     <string name="textWelcome">You have to login to use the Notification Service.</string>
     <string name="title_activity_settings">SettingsActivity</string>
-    <string name="title_activity_preferences">PreferencesActivity</string>
+    <string name="title_activity_preferences">Preferences</string>
+    <string name="registration_failed">Registration failed.\n\nEither you haven\'t enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time.\n</string>
+    <string name="deregistration_failed">Deregistration failed.\n\nEither you haven\'t enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try deregistering again after some time.\n</string>
+    <string name="message_checkplayservices">This device doesn\'t support Play services, App will not work normally.</string>
+    <string name="message_storeRegIdinServer_success">User shared successfully with Web Server!</string>
+    <string name="message_regIdinServer_failure_400">Username or Password is not correct!</string>
+    <string name="message_regIdinServer_failure_404">Requested resource not found!</string>
+    <string name="message_regIdinServer_failure_500">Something went wrong at server end!</string>
+    <string name="message_regIdinServer_failure">Unexpected Error occcured! Device might not be connected to Internet or remote server is not up and running!</string>
+    <string name="message_deleteRegIdinServer_success">Logout was successfully.</string>
+    <string name="message_storePreferencesInServer_success">Preferences saved successfully!</string>
+    <string name="push_notification">Push-Notification</string>
+    <string name="instant_booking_arrived">Instant booking arrived</string>
+    <string name="offer_adopted">Offer adopted</string>
+    <string name="offer_rejected">Offer rejected</string>
+    <string name="inquiry_arrived">Inquiry arrived</string>
+    <string name="old_inbox_messages">Old inbox messages</string>
+    <string name="flat_rate_request_arrived">Flat rate request arrived</string>
+    <string name="contact_form">Contact form</string>
+    <string name="save">Save</string>
 </resources>

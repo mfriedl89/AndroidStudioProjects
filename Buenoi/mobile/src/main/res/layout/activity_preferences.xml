@@ -7,105 +7,128 @@
     tools:context="at.snowreporter.buenoi.PreferencesActivity"
     android:id="@+id/Preferences">
 
-    <CheckBox
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Instant booking arrived"
-        android:id="@+id/checkBox_instant_booking_arrived"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/push_notification"
+        android:id="@+id/textViewPushNotification"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:checked="false" />
+        android:layout_marginBottom="15dp"
+        android:textColor="#aaaaaa"
+        android:textStyle="italic" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Offer adopted"
+        android:text="@string/instant_booking_arrived"
+        android:textSize="20dp"
+        android:id="@+id/checkBox_instant_booking_arrived"
+        android:checked="false"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="15dp"
+        android:layout_below="@+id/textViewPushNotification"
+        android:layout_alignParentRight="true" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/offer_adopted"
+        android:textSize="20dp"
         android:id="@+id/checkBox_offer_adopted"
         android:checked="false"
         android:layout_below="@+id/checkBox_instant_booking_arrived"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_alignRight="@+id/checkBox_offer_rejected"
-        android:layout_alignEnd="@+id/checkBox_offer_rejected" />
+        android:layout_marginBottom="15dp"
+        android:layout_alignParentRight="true" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Offer rejected"
+        android:text="@string/offer_rejected"
+        android:textSize="20dp"
         android:id="@+id/checkBox_offer_rejected"
         android:checked="false"
         android:layout_below="@+id/checkBox_offer_adopted"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignRight="@+id/checkBox_inquiry_arrived"
-        android:layout_alignEnd="@+id/checkBox_inquiry_arrived" />
+        android:layout_alignEnd="@+id/checkBox_inquiry_arrived"
+        android:layout_marginBottom="15dp"
+        android:layout_alignParentRight="true" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Inquiry arrived"
+        android:text="@string/inquiry_arrived"
+        android:textSize="20dp"
         android:id="@+id/checkBox_inquiry_arrived"
         android:checked="false"
         android:layout_below="@+id/checkBox_offer_rejected"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="15dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Old inbox messages"
+        android:text="@string/old_inbox_messages"
+        android:textSize="20dp"
         android:id="@+id/checkBox_old_inbox_messages"
         android:checked="false"
         android:layout_below="@+id/checkBox_inquiry_arrived"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignRight="@+id/checkBox_inquiry_arrived"
-        android:layout_alignEnd="@+id/checkBox_inquiry_arrived" />
+        android:layout_alignEnd="@+id/checkBox_inquiry_arrived"
+        android:layout_marginBottom="15dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Flat rate request arrived"
+        android:text="@string/flat_rate_request_arrived"
+        android:textSize="20dp"
         android:id="@+id/checkBox_flat_rate_request_arrived"
         android:checked="false"
         android:layout_below="@+id/checkBox_old_inbox_messages"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignRight="@+id/checkBox_old_inbox_messages"
-        android:layout_alignEnd="@+id/checkBox_old_inbox_messages" />
+        android:layout_alignEnd="@+id/checkBox_old_inbox_messages"
+        android:layout_marginBottom="15dp" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Contact form"
+        android:text="@string/contact_form"
+        android:textSize="20dp"
         android:id="@+id/checkBox_contact_form"
-        android:checked="false"
         android:layout_below="@+id/checkBox_flat_rate_request_arrived"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignRight="@+id/checkBox_flat_rate_request_arrived"
-        android:layout_alignEnd="@+id/checkBox_flat_rate_request_arrived" />
+        android:layout_alignEnd="@+id/checkBox_flat_rate_request_arrived"
+        android:layout_marginBottom="15dp" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Save"
+        android:text="@string/save"
+        android:textSize="20dp"
         android:id="@+id/button_save"
+        android:onClick="onClickButtonSave"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Cancel"
-        android:id="@+id/button_cancel"
-        android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@+id/button_save"
-        android:layout_toEndOf="@+id/button_save" />
 </RelativeLayout>

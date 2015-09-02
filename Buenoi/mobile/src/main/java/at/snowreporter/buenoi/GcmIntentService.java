@@ -74,85 +74,93 @@ public class GcmIntentService extends IntentService {
 
     private void sendNotification(String msg) {
         Log.i(TAG, "sendNotification: " + msg);
-        Context context = getApplicationContext();
 
-        Intent intent = new Intent(this, MainActivity.class);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-        // Split messageString
-        Message message = MessageJsonString.splitMessage(msg);
-
-        NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
-        String longTextMessage = msg;
-        textStyle.bigText(message.type);
-        textStyle.setSummaryText(message.comment);
-
-        NotificationCompat.InboxStyle inboxStyle =
-                new NotificationCompat.InboxStyle();
-        String[] events = new String[6];
-        // Sets a title for the Inbox in expanded layout
-        inboxStyle.setBigContentTitle("Event tracker details:");
-
-        // Moves events into the expanded layout
-        for (int i = 0; i < events.length; i++) {
-            inboxStyle.addLine(events[i]);
-        }
-
-        final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
-
-        if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
-            mBuilder
-                    .setSound(alarmSound)
-                    .setContentTitle("Buenoi")
-                    .setContentText(message.type)
-                    .setAutoCancel(true)
-                    .setContentIntent(contentIntent)
-                    .setStyle(textStyle)
-                    .setPriority(Notification.PRIORITY_HIGH)
-                    .setTicker("new Buenoi")
-                    .setLights(0xFFAAAA00, 200, 2000)
-                    .setSmallIcon(getNotificationIcon(), 1);
-
-            if (Build.VERSION.SDK_INT >= 21) {
-                mBuilder
-                        .setCategory(Notification.CATEGORY_MESSAGE)
-                        .setVisibility(Notification.VISIBILITY_PUBLIC);
-            }
-
-            Log.i(TAG, "isInBackground = true --> send notification");
+        if (msg.contains("type=gcm_id_verifiziert") ||
+                msg.contains("Bundle[{CMD=RST_FULL, from=google.com/iid, android.support.content.wakelockid=1}]")) {
+            Log.i(TAG, "Initialization for google cloud messaging, no message to show!");
         }
         else {
-            Thread thread = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (this) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    MainActivity.getNewMessage();
-                                }
-                            });
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+            Context context = getApplicationContext();
+
+            Intent intent = new Intent(this, MainActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+            Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+            // Split messageString
+            Message message = MessageJsonString.splitMessage(msg);
+
+            // Add message to the database
+            MainActivity.addMessage(message);
+
+            NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
+            String longTextMessage = msg;
+            textStyle.bigText(message.type);
+            textStyle.setSummaryText(message.comment);
+
+            NotificationCompat.InboxStyle inboxStyle =
+                    new NotificationCompat.InboxStyle();
+            String[] events = new String[6];
+            // Sets a title for the Inbox in expanded layout
+            inboxStyle.setBigContentTitle("Event tracker details:");
+
+            // Moves events into the expanded layout
+            for (int i = 0; i < events.length; i++) {
+                inboxStyle.addLine(events[i]);
+            }
+
+            final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
+
+            if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
+                mBuilder
+                        .setSound(alarmSound)
+                        .setContentTitle("Buenoi")
+                        .setContentText(message.type)
+                        .setAutoCancel(true)
+                        .setContentIntent(contentIntent)
+                        .setStyle(textStyle)
+                        .setPriority(Notification.PRIORITY_HIGH)
+                        .setTicker("new Buenoi")
+                        .setLights(0xFFAAAA00, 200, 2000)
+                        .setSmallIcon(getNotificationIcon(), 1);
+
+                if (Build.VERSION.SDK_INT >= 21) {
+                    mBuilder
+                            .setCategory(Notification.CATEGORY_MESSAGE)
+                            .setVisibility(Notification.VISIBILITY_PUBLIC);
                 }
-            };
-            thread.start();
 
-            mBuilder
-                    .setSound(alarmSound);
+                Log.i(TAG, "isInBackground = true --> send notification");
+            } else {
+                Thread thread = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            synchronized (this) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        MainActivity.getNewMessage();
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                thread.start();
 
-            Log.i(TAG, "isInBackground = false --> show toast");
+                mBuilder
+                        .setSound(alarmSound);
+
+                Log.i(TAG, "isInBackground = false --> show toast");
+            }
+
+            Notification notification = mBuilder.build();
+            mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager.notify(NOTIFICATION_ID, notification);
         }
-
-        MainActivity.addMessage(message);
-        Notification notification = mBuilder.build();
-        mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(NOTIFICATION_ID, notification);
     }
 
     private int getNotificationIcon() {

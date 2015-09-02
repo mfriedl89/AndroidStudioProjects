@@ -2,6 +2,7 @@ package at.snowreporter.buenoi;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.Loader;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -62,8 +63,6 @@ public class MessageListActivity extends AppCompatActivity
                     .findFragmentById(R.id.message_list))
                     .setActivateOnItemClick(true);
         }
-
-        // TODO: If exposing deep links into your app, handle intents here.
     }
 
     @Override

@@ -9,7 +9,6 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
@@ -43,13 +42,17 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.loopj.android.http.*;
 
 import org.apache.http.Header;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.security.KeyStore;
+import java.text.DateFormat;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import at.snowreporter.buenoi.database.Message;
 import at.snowreporter.buenoi.database.MessageRepo;
+import at.snowreporter.buenoi.database.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -74,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
     // Password from input
     private String inputPassword = "";
 
+    // Business ID from Webserver
+    private String businessID = "";
+
     // Instance of a progress dialog
     private static ProgressDialog prgDialog;
     public static ProgressDialog prgDialogMessageListActivity;
@@ -96,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     public static Activity activity;
 
     // Database
-    private static MessageRepo myMessageRepo;
+    public static MessageRepo myMessageRepo;
     private int _Message_Id = 0;
 
     // Preferences
@@ -106,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
     public static AsyncHttpClient client = new AsyncHttpClient();
 
     // Cookies
-    static PersistentCookieStore myCookieStore = new PersistentCookieStore(context);
+    static PersistentCookieStore myCookieStore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         context = getApplicationContext();
+
+        myCookieStore = new PersistentCookieStore(context);
 
         activity = this;
 
@@ -123,18 +131,19 @@ public class MainActivity extends AppCompatActivity {
         // Set Cancelable as False
         prgDialog.setCancelable(false);
 
-        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+        Preferences.prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
 
-        myPreferences.storedRegistraionId = prefs.getString(myPreferences.REG_ID, "");
-        myPreferences.storedUsernameId = prefs.getString(myPreferences.USERNAME_ID, "");
-        myPreferences.storedPasswordId = prefs.getString(myPreferences.PASSWORD_ID, "");
-        myPreferences.storedInstantBookingArrived = prefs.getBoolean(myPreferences.PREF_INSTANT_BOOKING_ARRIVED, false);
-        myPreferences.storedOfferAdopted = prefs.getBoolean(myPreferences.PREF_OFFER_ADOPTED, false);
-        myPreferences.storedOfferRejected = prefs.getBoolean(myPreferences.PREF_OFFER_REJECTED, false);
-        myPreferences.storedInquiryArrived = prefs.getBoolean(myPreferences.PREF_INQUIRY_ARRIVED, false);
-        myPreferences.storedOldInboxMessages = prefs.getBoolean(myPreferences.PREF_OLD_INBOX_MESSAGES, false);
-        myPreferences.storedFlatRateRequestArrived = prefs.getBoolean(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, false);
-        myPreferences.storedContactForm = prefs.getBoolean(myPreferences.PREF_CONTACT_FORM, false);
+        myPreferences.storedRegistraionId = Preferences.prefs.getString(myPreferences.REG_ID, "");
+        myPreferences.storedUsernameId = Preferences.prefs.getString(myPreferences.USERNAME_ID, "");
+        myPreferences.storedPasswordId = Preferences.prefs.getString(myPreferences.PASSWORD_ID, "");
+        myPreferences.storedBusinessId = Preferences.prefs.getString(myPreferences.BUSINESS_ID, "");
+        myPreferences.storedInstantBookingArrived = Preferences.prefs.getInt(myPreferences.PREF_INSTANT_BOOKING_ARRIVED, 0);
+        myPreferences.storedOfferAdopted = Preferences.prefs.getInt(myPreferences.PREF_OFFER_ADOPTED, 0);
+        myPreferences.storedOfferRejected = Preferences.prefs.getInt(myPreferences.PREF_OFFER_REJECTED, 0);
+        myPreferences.storedInquiryArrived = Preferences.prefs.getInt(myPreferences.PREF_INQUIRY_ARRIVED, 0);
+        myPreferences.storedOldInboxMessages = Preferences.prefs.getInt(myPreferences.PREF_OLD_INBOX_MESSAGES, 0);
+        myPreferences.storedFlatRateRequestArrived = Preferences.prefs.getInt(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, 0);
+        myPreferences.storedContactForm = Preferences.prefs.getInt(myPreferences.PREF_CONTACT_FORM, 0);
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
@@ -228,6 +237,21 @@ public class MainActivity extends AppCompatActivity {
             loggedInText.setVisibility(View.INVISIBLE);
         }
 
+        // TODO: Delete testmessage [BEGIN]
+        GregorianCalendar calendar = new GregorianCalendar();
+        DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM);
+        String date = df.format(calendar.getTime());
+        df = DateFormat.getTimeInstance(DateFormat.MEDIUM);
+        String time = df.format(calendar.getTime());
+
+        Message message = new Message();
+        message.date = date;
+        message.time = time;
+        message.type = "test_anfrage";
+        message.comment = "Testmessage " + date + " " + time;
+
+        addMessage(message);
+        // TODO: Delete testmessage [END]
     }
 
     // User login
@@ -292,8 +316,6 @@ public class MainActivity extends AppCompatActivity {
                 inputUsername = loginAlertEditTextUsername.getText().toString();
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    Log.i(TAG, "Username Input - Next clicked");
-
                     if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
                         handled = true;
@@ -335,8 +357,6 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
 
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    Log.i(TAG, "Password Input - Done clicked");
-
                     if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
                         handled = true;
@@ -395,10 +415,8 @@ public class MainActivity extends AppCompatActivity {
 
     // User logout
     public static void logout() {
-        SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
-
-        String deleteRegId = prefs.getString(myPreferences.REG_ID, "");
-        String deleteUsernameId = prefs.getString(myPreferences.USERNAME_ID, "");
+        String deleteRegId = Preferences.prefs.getString(myPreferences.REG_ID, "");
+        String deleteUsernameId = Preferences.prefs.getString(myPreferences.USERNAME_ID, "");
 
         Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - username id: " + deleteUsernameId);
 
@@ -433,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "isAppInBackground: context is null!");
             }
         } catch (NullPointerException e) {
-            throw new RuntimeException("Could not get isAppInBackground: " + e);
+            throw new RuntimeException(e);
         }
 
         return isInBackground;
@@ -483,11 +501,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "Registration in background - On post execute.");
                 if (!TextUtils.isEmpty(regId)) {
                     // Store RegId created by GCM Server in SharedPref
+                    Log.i(TAG, "Registration in background - On post execute - before storeRegIdinServer.");
+
                     storeRegIdinServer(regId, usernameId, passwordId);
                 } else {
                     Toast.makeText(
                             context,
-                            "Registration failed.\n\nEither you haven't enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try registering again after some time.\n"
+                            getString(R.string.registration_failed)
                                     + msg, Toast.LENGTH_LONG).show();
                     prgDialog.hide();
                     if (prgDialog != null) {
@@ -510,6 +530,10 @@ public class MainActivity extends AppCompatActivity {
                     gcm.unregister();
                 } catch (IOException ex) {
                     msg = "Error :" + ex.getMessage();
+
+                    Toast.makeText(
+                            context, context.getString(R.string.deregistration_failed)
+                             + msg, Toast.LENGTH_LONG).show();
                 }
                 return msg;
             }
@@ -517,13 +541,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void onPostExecute(String msg) {
                 deleteRegIdinServer(deleteRegId, deleteUsernameId);
-
-                Toast.makeText(
-                        context,
-                        "Logout was successfully."
-                        , Toast.LENGTH_SHORT).show();
-
-                myPreferences.storedUsernameId = "";
             }
         }.execute(null, null, null);
     }
@@ -538,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(
                         context,
-                        "This device doesn't support Play services, App will not work normally",
+                        R.string.message_checkplayservices,
                         Toast.LENGTH_LONG).show();
                 Log.i(TAG, "This device is not supported.");
                 finish();
@@ -569,14 +586,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Store RegId and Username/Passwort entered by User in SharedPref
-    private void storeRegIdinSharedPref(String regId,
+    private static void storeRegIdinSharedPref(String regId,
                                         String usernameId, String passwordId) {
-        SharedPreferences prefs = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(myPreferences.REG_ID, regId);
-        editor.putString(myPreferences.USERNAME_ID, usernameId);
-        editor.putString(myPreferences.PASSWORD_ID, passwordId);
-        editor.commit();
+        Preferences.editor = Preferences.prefs.edit();
+        Preferences.editor.putString(myPreferences.REG_ID, regId);
+        Preferences.editor.putString(myPreferences.USERNAME_ID, usernameId);
+        Preferences.editor.putString(myPreferences.PASSWORD_ID, passwordId);
+        Preferences.editor.commit();
 
         // Hide Progress Dialog
         prgDialog.hide();
@@ -585,26 +601,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Store Preferences in SharedPref
-    public void storePreferencesInSharedPref() {
-
-    }
-
     // Delete RegId and Username entered by User in SharedPref
     private static void deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
-        SharedPreferences prefs = context.getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.remove(myPreferences.REG_ID);
-        editor.remove(myPreferences.USERNAME_ID);
-        editor.remove(myPreferences.PASSWORD_ID);
-        editor.remove(myPreferences.PREF_INSTANT_BOOKING_ARRIVED);
-        editor.remove(myPreferences.PREF_OFFER_ADOPTED);
-        editor.remove(myPreferences.PREF_OFFER_REJECTED);
-        editor.remove(myPreferences.PREF_INQUIRY_ARRIVED);
-        editor.remove(myPreferences.PREF_OLD_INBOX_MESSAGES);
-        editor.remove(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED);
-        editor.remove(myPreferences.PREF_CONTACT_FORM);
-        editor.commit();
+        Preferences.editor = Preferences.prefs.edit();
+        Preferences.editor.remove(myPreferences.REG_ID);
+        Preferences.editor.remove(myPreferences.USERNAME_ID);
+        Preferences.editor.remove(myPreferences.PASSWORD_ID);
+        Preferences.editor.remove(myPreferences.PREF_INSTANT_BOOKING_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_OFFER_ADOPTED);
+        Preferences.editor.remove(myPreferences.PREF_OFFER_REJECTED);
+        Preferences.editor.remove(myPreferences.PREF_INQUIRY_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_OLD_INBOX_MESSAGES);
+        Preferences.editor.remove(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_CONTACT_FORM);
+        Preferences.editor.commit();
 
         // Hide Progress Dialog
         prgDialogMessageListActivity.hide();
@@ -636,7 +646,7 @@ public class MainActivity extends AppCompatActivity {
         myCookieStore.clear();
         client.setCookieStore(myCookieStore);
 
-        Log.i(TAG, "Cookies: " + myCookieStore.getCookies().toString());
+        Log.i(TAG, "Cookies storeRegIdinServer: " + myCookieStore.getCookies().toString());
 
         client.post(loginLink, new AsyncHttpResponseHandler() {
             @Override
@@ -650,7 +660,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "storeRegIdinServer onSuccess: " + statusCode);
 
                 Toast.makeText(context,
-                        "Username shared successfully with Web App ",
+                        R.string.message_storeRegIdinServer_success,
                         Toast.LENGTH_LONG).show();
                 Intent i = new Intent(context,
                         MainActivity.class);
@@ -678,27 +688,26 @@ public class MainActivity extends AppCompatActivity {
                 // When Http response code is '400'
                 if (statusCode == 400) {
                     Toast.makeText(context,
-                            "Username or Password is not correct!",
+                            R.string.message_regIdinServer_failure_400,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '404'
                 else if (statusCode == 404) {
                     Toast.makeText(context,
-                            "Requested resource not found",
+                            R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
                     Toast.makeText(context,
-                            "Something went wrong at server end",
+                            R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
                             context,
-                            "Unexpected Error occcured! [Most common Error: Device might "
-                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                            R.string.message_regIdinServer_failure,
                             Toast.LENGTH_LONG).show();
                 }
             }
@@ -727,6 +736,8 @@ public class MainActivity extends AppCompatActivity {
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         client.setCookieStore(myCookieStore);
 
+        Log.i(TAG, "Cookies deleteRegIdinServer: " + myCookieStore.getCookies().toString());
+
         client.post(logoutLink, new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
@@ -734,6 +745,13 @@ public class MainActivity extends AppCompatActivity {
 
                 deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
 
+                Toast.makeText(
+                        context,
+                        R.string.message_deleteRegIdinServer_success
+                        , Toast.LENGTH_SHORT).show();
+
+                myPreferences.storedUsernameId = "";
+                context.deleteDatabase(myMessageRepo.myDatabaseHelper.DATABASE_NAME);
                 myCookieStore.clear();
 
                 loginIntent = new Intent(context, MainActivity.class);
@@ -758,30 +776,22 @@ public class MainActivity extends AppCompatActivity {
                 // When Http response code is '404'
                 if (statusCode == 404) {
                     Toast.makeText(context,
-                            "Requested resource not found",
+                            R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
                     Toast.makeText(context,
-                            "Something went wrong at server end",
+                            R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
                             context,
-                            "Unexpected Error occcured! [Most common Error: Device might "
-                                    + "not be connected to Internet or remote server is not up and running], check for other errors as well",
+                            R.string.message_regIdinServer_failure,
                             Toast.LENGTH_LONG).show();
                 }
-
-                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
-
-                loginIntent = new Intent(context, MainActivity.class);
-                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(loginIntent);
-                activity.finish();
             }
         });
     }
@@ -806,20 +816,26 @@ public class MainActivity extends AppCompatActivity {
         values.put(Message.COL_COMMENT, message.comment);
 
         myMessageRepo.insert(message);
+
+        if (!isAppInBackground()) {
+
+
+            MessageListFragment.refreshListView();
+        }
     }
 
     public static void getUserSettings() {
-        String getUserSettingsLink = String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS);
-        Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink);
+        final String[] getUserSettingsLink = {String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS)};
+        Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink[0]);
 
-        // Make RESTful webservice call using AsyncHttpClient object
+        final PreferencesJsonString myPreferencesJsonString = new PreferencesJsonString();
 
         try {
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             trustStore.load(null, null);
             MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
             sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            client.setTimeout(30*1000);
+            //client.setTimeout(30*1000);
             client.setSSLSocketFactory(sf);
         } catch (Exception e) {
             Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
@@ -832,7 +848,9 @@ public class MainActivity extends AppCompatActivity {
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         client.setCookieStore(myCookieStore);
 
-        client.get(context, getUserSettingsLink, new TextHttpResponseHandler() {
+        Log.i(TAG, "Cookies getUserSettings: " + myCookieStore.getCookies().toString());
+
+        client.get(context, getUserSettingsLink[0], new TextHttpResponseHandler() {
             @Override
             public void onStart() {
                 Log.i(TAG, "getUserSettingsLink Request starts!");
@@ -840,12 +858,130 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                String businessId = "";
                 Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode + ", " + responseString);
+
+                try {
+                    myPreferencesJsonString.getPreferences(responseString);
+
+                    storePreferencesInSharedPref();
+
+                    preferencesIntent = new Intent(context, PreferencesActivity.class);
+                    context.startActivity(preferencesIntent);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
                 Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode + ", " + responseString);
+
+                // When Http response code is '404'
+                if (statusCode == 404) {
+                    Toast.makeText(context,
+                            R.string.message_regIdinServer_failure_404,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(context,
+                            R.string.message_regIdinServer_failure_500,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code other than 404, 500
+                else {
+                    Toast.makeText(
+                            context,
+                            R.string.message_regIdinServer_failure,
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    public static void storePreferencesInSharedPref() {
+        Preferences.editor = Preferences.prefs.edit();
+        Preferences.editor.putInt(myPreferences.PREF_INSTANT_BOOKING_ARRIVED, myPreferences.storedInstantBookingArrived);
+        Preferences.editor.putInt(myPreferences.PREF_OFFER_ADOPTED, myPreferences.storedOfferAdopted);
+        Preferences.editor.putInt(myPreferences.PREF_OFFER_REJECTED, myPreferences.storedOfferRejected);
+        Preferences.editor.putInt(myPreferences.PREF_INQUIRY_ARRIVED, myPreferences.storedInquiryArrived);
+        Preferences.editor.putInt(myPreferences.PREF_OLD_INBOX_MESSAGES, myPreferences.storedOldInboxMessages);
+        Preferences.editor.putInt(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, myPreferences.storedFlatRateRequestArrived);
+        Preferences.editor.putInt(myPreferences.PREF_CONTACT_FORM, myPreferences.storedContactForm);
+        Preferences.editor.commit();
+    }
+
+    public static void storePreferencesInServer() {
+        String preferenceString = myPreferences.storedBusinessId;
+        if (myPreferences.storedInstantBookingArrived == 1) { preferenceString +=
+                "&enable[]=sofortbuchung_eingelangt"; }
+        if (myPreferences.storedOfferAdopted == 1) { preferenceString +=
+                "&enable[]=angebot_angenommen"; }
+        if (myPreferences.storedOfferRejected == 1) { preferenceString +=
+                "&enable[]=angebot_abgelehnt"; }
+        if (myPreferences.storedInquiryArrived == 1) { preferenceString +=
+                "&enable[]=anfrage_eingelangt"; }
+        if (myPreferences.storedOldInboxMessages == 1) { preferenceString +=
+                "&enable[]=old_inbox_messages"; }
+        if (myPreferences.storedFlatRateRequestArrived == 1) { preferenceString +=
+                "&enable[]=anfrage_pauschale_eingelangt"; }
+        if (myPreferences.storedContactForm == 1) { preferenceString +=
+                "&enable[]=kontakt_formular"; }
+
+        String storePreferencesLink = String.format(ApplicationConstants
+                .APP_SERVER_SET_USER_SETTINGS, preferenceString);
+        Log.i(TAG, "storePreferencesInServer - loginLink: " + storePreferencesLink);
+
+        // Make RESTful webservice call using AsyncHttpClient object
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
+            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setSSLSocketFactory(sf);
+        } catch (Exception e) {
+            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
+        }
+
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+        client.setCookieStore(myCookieStore);
+
+        Log.i(TAG, "Cookies storePreferencesInServer: " + myCookieStore.getCookies().toString());
+
+        client.post(storePreferencesLink, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Toast.makeText(context,
+                        R.string.message_storePreferencesInServer_success,
+                        Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                // When Http response code is '404'
+                if (statusCode == 404) {
+                    Toast.makeText(context,
+                            R.string.message_regIdinServer_failure_404,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(context,
+                            R.string.message_regIdinServer_failure_500,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code other than 404, 500
+                else {
+                    Toast.makeText(
+                            context,
+                            R.string.message_regIdinServer_failure,
+                            Toast.LENGTH_LONG).show();
+                }
             }
         });
     }

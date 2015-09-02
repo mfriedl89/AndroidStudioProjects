@@ -4,11 +4,12 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.util.List;
 
-import at.snowreporter.buenoi.dummy.DummyContent;
+import at.snowreporter.buenoi.database.Message;
+import at.snowreporter.buenoi.database.MessageItemAdapter;
 
 /**
  * A list fragment representing a list of Messages. This fragment
@@ -20,6 +21,9 @@ import at.snowreporter.buenoi.dummy.DummyContent;
  * interface.
  */
 public class MessageListFragment extends ListFragment {
+
+    // For internal logging
+    static final String TAG = "Buenoi";
 
     /**
      * The serialization (saved instance state) Bundle key representing the
@@ -37,6 +41,10 @@ public class MessageListFragment extends ListFragment {
      * The current activated item position. Only used on tablets.
      */
     private int mActivatedPosition = ListView.INVALID_POSITION;
+
+    public static MessageItemAdapter myMessageItemAdapter;
+
+    public static List<Message> myMessageList;
 
     /**
      * A callback interface that all activities containing this fragment must
@@ -71,12 +79,9 @@ public class MessageListFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // TODO: replace with a real list adapter.
-        setListAdapter(new ArrayAdapter<DummyContent.DummyItem>(
-                getActivity(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                DummyContent.ITEMS));
+        myMessageList = MainActivity.myMessageRepo.getMessageList();
+        myMessageItemAdapter = new MessageItemAdapter(getActivity(), R.layout.message_layout, myMessageList);
+        setListAdapter(myMessageItemAdapter);
     }
 
     @Override
@@ -116,7 +121,8 @@ public class MessageListFragment extends ListFragment {
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(DummyContent.ITEMS.get(position).id);
+
+        mCallbacks.onItemSelected(MainActivity.myMessageRepo.getMessageById(position + 1).message_ID.toString());
     }
 
     @Override
@@ -148,5 +154,12 @@ public class MessageListFragment extends ListFragment {
         }
 
         mActivatedPosition = position;
+    }
+
+    public static void refreshListView() {
+        myMessageList = MainActivity.myMessageRepo.getMessageList();
+        myMessageItemAdapter.clear();
+        myMessageItemAdapter.addAll(myMessageList);
+        myMessageItemAdapter.notifyDataSetChanged();
     }
 }

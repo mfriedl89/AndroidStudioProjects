@@ -2,6 +2,7 @@ package at.snowreporter.buenoi;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,7 +10,6 @@ import android.widget.TextView;
 
 
 import at.snowreporter.buenoi.database.Message;
-import at.snowreporter.buenoi.database.MessageContent;
 
 /**
  * A fragment representing a single Message detail screen.
@@ -18,22 +18,21 @@ import at.snowreporter.buenoi.database.MessageContent;
  * on handsets.
  */
 public class MessageDetailFragment extends Fragment {
+
+    // For internal logging
+    static final String TAG = "Buenoi";
+
     /**
      * The fragment argument representing the item ID that this fragment
      * represents.
      */
-    public static final String ARG_ITEM_ID = "item_id";
+    public static final String ARG_ITEM_ID = "COL_ID";
 
     /**
      * The dummy content this fragment is presenting.
      */
-    //private DummyContent.DummyItem mItem; --------------------------------------------------------
 
-
-    private MessageContent.MessageItem mItem;
-    private int _Message_Id = 0;
     private Message message = new Message();
-
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -46,19 +45,15 @@ public class MessageDetailFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /*_Message_Id = 0;
-        Intent intent = Intent.getIntent();
-        _Message_Id = intent.getIntExtra("message_id", 0);
-        MessageRepo repo = new MessageRepo(this);
-        message = repo.getMessageById(_Message_Id);*/
-        
         if (getArguments().containsKey(ARG_ITEM_ID)) {
-            // Load the dummy content specified by the fragment
-            // arguments. In a real-world scenario, use a Loader
-            // to load content from a content provider.
-            // mItem = DummyContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID)); -----------
+            Integer diffItemId = MainActivity.myMessageRepo.getRowNumbers() -
+                    Integer.parseInt(getArguments().getString(ARG_ITEM_ID)) + 1; // two times '+1' because id in table starts at 1
 
-            mItem = MessageContent.MESSAGE_MAP.get(getArguments().getString(ARG_ITEM_ID));
+            Log.i(TAG, "diffItemId: " + diffItemId);
+
+
+            // Show selected Message in Detail View
+            message = MainActivity.myMessageRepo.getMessageById(diffItemId);
         }
     }
 
@@ -68,11 +63,11 @@ public class MessageDetailFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_message_detail, container, false);
 
         // Show the dummy content as text in a TextView.
-        if (mItem != null) {
-            ((TextView) rootView.findViewById(R.id.textViewDate)).setText(mItem.date);//message.date);
-            ((TextView) rootView.findViewById(R.id.textViewTime)).setText(mItem.time);//message.time);
-            ((TextView) rootView.findViewById(R.id.textViewType)).setText(mItem.type);//message.type);
-            ((TextView) rootView.findViewById(R.id.textViewComment)).setText(mItem.comment);//message.comment);
+        if (message != null) {
+            ((TextView) rootView.findViewById(R.id.textViewDate)).setText(message.date);
+            ((TextView) rootView.findViewById(R.id.textViewTime)).setText(message.time);
+            ((TextView) rootView.findViewById(R.id.textViewType)).setText(message.type);
+            ((TextView) rootView.findViewById(R.id.textViewComment)).setText(message.comment);
         }
 
         return rootView;

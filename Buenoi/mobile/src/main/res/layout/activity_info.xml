@@ -8,7 +8,7 @@
         android:layout_height="wrap_content"
         android:text="@string/textLoggedIn"
         android:id="@+id/loggedInTextInfo"
-        android:layout_alignBottom="@+id/textView"
+        android:layout_alignBottom="@+id/textViewMessageDate"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:padding="15dp"/>
