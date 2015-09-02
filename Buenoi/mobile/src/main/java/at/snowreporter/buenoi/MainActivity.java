@@ -480,6 +480,7 @@ public class MainActivity extends AppCompatActivity {
 
         new AsyncTask<Void, Void, String>() {
             @Override
+
             protected String doInBackground(Void... params) {
                 Log.i(TAG, "Registration in background - Do in background.");
                 String msg = "";
