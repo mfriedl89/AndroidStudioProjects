@@ -6,7 +6,7 @@
     <string name="login">Login</string>
     <string name="logout">Logout</string>
     <string name="cancel">Cancel</string>
-    <string name="email" translatable="false">E-Mail</string>
+    <string name="email">E-Mail</string>
     <string name="password">Password</string>
     <string name="showPassword">Show password</string>
     <string name="textLoggedIn">You are logged in as</string>
@@ -25,10 +25,10 @@
     <string name="deregistration_failed">Deregistration failed.\n\nEither you haven\'t enabled Internet or GCM server is busy right now. Make sure you enabled Internet and try deregistering again after some time.\n</string>
     <string name="message_checkplayservices">This device doesn\'t support Play services, App will not work normally.</string>
     <string name="message_storeRegIdinServer_success">User shared successfully with Web Server!</string>
-    <string name="message_regIdinServer_failure_400">Username or Password is not correct!</string>
-    <string name="message_regIdinServer_failure_404">Requested resource not found!</string>
-    <string name="message_regIdinServer_failure_500">Something went wrong at server end!</string>
-    <string name="message_regIdinServer_failure">Unexpected Error occcured! Device might not be connected to Internet or remote server is not up and running!</string>
+    <string name="message_server_failure_400">Username or Password is not correct!</string>
+    <string name="message_server_failure_404">Requested resource not found!</string>
+    <string name="message_server_failure_500">Something went wrong at server end!</string>
+    <string name="message_server_failure">Unexpected Error occcured! Device might not be connected to Internet or remote server is not up and running!</string>
     <string name="message_deleteRegIdinServer_success">Logout was successfully.</string>
     <string name="message_storePreferencesInServer_success">Preferences saved successfully!</string>
     <string name="push_notification">Push-Notification</string>
@@ -41,4 +41,8 @@
     <string name="contact_form">Contact form</string>
     <string name="save">Save</string>
     <string name="no_message">No Message to show</string>
+    <string name="undefine_type">Undefine type</string>
+    <string name="message_server_failure_401">Not authorized! Try again after some time.</string>
+    <string name="message_prg_dialog_messagetext">Get settings from the server. Please wait...</string>
+    <string name="logout_prg_dialog_messagetext">Logout from server. Please wait...</string>
 </resources>

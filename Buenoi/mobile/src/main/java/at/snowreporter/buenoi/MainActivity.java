@@ -2,6 +2,7 @@ package at.snowreporter.buenoi;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.Application;
 import android.app.Dialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
@@ -46,21 +47,18 @@ import org.json.JSONException;
 
 import java.io.IOException;
 import java.security.KeyStore;
-import java.text.DateFormat;
-import java.util.GregorianCalendar;
 import java.util.List;
 
-import at.snowreporter.buenoi.database.Message;
-import at.snowreporter.buenoi.database.MessageRepo;
-import at.snowreporter.buenoi.database.MyDatabaseHelper;
+import at.snowreporter.buenoi.MessageList.MessageListFragment;
+import at.snowreporter.buenoi.Preferences.Preferences;
+import at.snowreporter.buenoi.Preferences.PreferencesActivity;
+import at.snowreporter.buenoi.Preferences.PreferencesJsonString;
+import at.snowreporter.buenoi.database.*;
 
 public class MainActivity extends AppCompatActivity {
 
     // Requestcode for GooglePlayServicesUtil.getErrorDialog
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-
-    // set context to context = getApplicationContext() in onCreate
-    static Context context;
 
     // For internal logging
     static final String TAG = "Buenoi";
@@ -77,12 +75,13 @@ public class MainActivity extends AppCompatActivity {
     // Password from input
     private String inputPassword = "";
 
-    // Business ID from Webserver
-    private String businessID = "";
+    // login link for webserver
+    public static String loginLink = "";
 
     // Instance of a progress dialog
     private static ProgressDialog prgDialog;
-    public static ProgressDialog prgDialogMessageListActivity;
+    public static ProgressDialog messagePrgDialog;
+    public static ProgressDialog logoutPrgDialog;
 
     // Notification manager
     NotificationManager notificationManager;
@@ -91,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
     boolean checkShowPassword = false;
 
     public static String storedLoggedInUsername;
-    static Button loggedInButton;
 
     // Set intent
     static Intent loginIntent;
@@ -103,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Database
     public static MessageRepo myMessageRepo;
-    private int _Message_Id = 0;
+    public static MyDatabaseHelper myDatabaseHelper;
 
     // Preferences
     public static Preferences myPreferences = new Preferences();
@@ -114,14 +112,19 @@ public class MainActivity extends AppCompatActivity {
     // Cookies
     static PersistentCookieStore myCookieStore;
 
+    // local timeouts for serveral server-services
+    public static Integer getUserSettingsTimeout = 0;
+    public static Integer storeRegIdinServerTimeout = 0;
+    public static Integer deleteRegIdinServerTimeout = 0;
+    public static Integer storePreferencesInServerTimeout = 0;
+    public static Integer deletePreferencesInServerTimeout = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        context = getApplicationContext();
-
-        myCookieStore = new PersistentCookieStore(context);
+        myCookieStore = new PersistentCookieStore(this);
 
         activity = this;
 
@@ -147,8 +150,8 @@ public class MainActivity extends AppCompatActivity {
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        loginIntent = new Intent(context, MainActivity.class);
-        preferencesIntent = new Intent(context, PreferencesActivity.class);
+        loginIntent = new Intent(MyApp.getContext(), MainActivity.class);
+        preferencesIntent = new Intent(MyApp.getContext(), PreferencesActivity.class);
 
         //When Username-ID is set in Sharedpref, User will be taken to HomeActivity
         if (!TextUtils.isEmpty(myPreferences.storedRegistraionId)) {
@@ -156,20 +159,21 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!TextUtils.isEmpty(myPreferences.storedUsernameId)) {
-            messageIntent = new Intent(context, MessageListActivity.class);
+            messageIntent = new Intent(MyApp.getContext(), MessageListActivity.class);
             startActivity(messageIntent);
             finish();
         }
 
         // database
-        myMessageRepo = new MessageRepo(this);
+        myMessageRepo = new MessageRepo();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG, "onResume");
         checkPlayServices();
-
+        //loginRefresh();
     }
 
     @Override
@@ -214,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void showSettings() {
+        getUserSettingsTimeout = 0;
         getUserSettings();
     }
 
@@ -232,11 +237,12 @@ public class MainActivity extends AppCompatActivity {
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.VISIBLE);
         } else {
-            storedLoggedInUsername = context.getResources().getString(R.string.nobodyLoggedIn);
+            storedLoggedInUsername = MyApp.getContext().getResources().getString(R.string.nobodyLoggedIn);
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.INVISIBLE);
         }
 
+        /*
         // TODO: Delete testmessage [BEGIN]
         GregorianCalendar calendar = new GregorianCalendar();
         DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM);
@@ -247,11 +253,13 @@ public class MainActivity extends AppCompatActivity {
         Message message = new Message();
         message.date = date;
         message.time = time;
-        message.type = "test_anfrage";
+        message.type = "anfrage_eingelangt";
         message.comment = "Testmessage " + date + " " + time;
+        message.read = 0;
 
         addMessage(message);
         // TODO: Delete testmessage [END]
+        */
     }
 
     // User login
@@ -318,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
                 if (actionId == EditorInfo.IME_ACTION_NEXT) {
                     if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
+                        loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                         handled = true;
                     }
                 }
@@ -343,8 +352,10 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                 } else {
                     loginAlertButtonLogin.setEnabled(false);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_disabled));
                 }
             }
         });
@@ -359,6 +370,7 @@ public class MainActivity extends AppCompatActivity {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     if (checkUsernamePassword()) {
                         loginAlertButtonLogin.setEnabled(true);
+                        loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                         handled = true;
                     }
                 }
@@ -383,8 +395,10 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                 } else {
                     loginAlertButtonLogin.setEnabled(false);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_disabled));
                 }
             }
         });
@@ -397,6 +411,7 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                 }
             }
         });
@@ -408,6 +423,7 @@ public class MainActivity extends AppCompatActivity {
                 inputPassword = loginAlertEditTextPassword.getText().toString();
                 if (checkUsernamePassword()) {
                     loginAlertButtonLogin.setEnabled(true);
+                    loginAlertButtonLogin.setTextColor(getResources().getColor(R.color.button_enabled));
                 }
             }
         });
@@ -418,6 +434,8 @@ public class MainActivity extends AppCompatActivity {
         String deleteRegId = Preferences.prefs.getString(myPreferences.REG_ID, "");
         String deleteUsernameId = Preferences.prefs.getString(myPreferences.USERNAME_ID, "");
 
+        deleteRegIdinServerTimeout = 0;
+
         Log.i(TAG, "Logout delete reg id: " + deleteRegId + " - username id: " + deleteUsernameId);
 
         deregisterInBackground(deleteRegId, deleteUsernameId);
@@ -427,14 +445,14 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isAppInBackground() {
         boolean isInBackground = true;
         try {
-            if (context != null) {
-                ActivityManager activityManager = (ActivityManager) context.getSystemService(context.ACTIVITY_SERVICE);
+            if (MyApp.getContext() != null) {
+                ActivityManager activityManager = (ActivityManager) MyApp.getContext().getSystemService(MyApp.getContext().ACTIVITY_SERVICE);
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT_WATCH) {
                     List<ActivityManager.RunningAppProcessInfo> runningProcesses = activityManager.getRunningAppProcesses();
                     for (ActivityManager.RunningAppProcessInfo processInfo : runningProcesses) {
                         if (processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
                             for (String activeProcess : processInfo.pkgList) {
-                                if (activeProcess.equals(context.getPackageName())) {
+                                if (activeProcess.equals(MyApp.getContext().getPackageName())) {
                                     isInBackground = false;
                                 }
                             }
@@ -443,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     List<ActivityManager.RunningTaskInfo> taskInfo = activityManager.getRunningTasks(1);
                     ComponentName componentInfo = taskInfo.get(0).topActivity;
-                    if (componentInfo.getPackageName().equals(context.getPackageName())) {
+                    if (componentInfo.getPackageName().equals(MyApp.getContext().getPackageName())) {
                         isInBackground = false;
                     }
                 }
@@ -460,7 +478,7 @@ public class MainActivity extends AppCompatActivity {
     // Checks if the screen of the smartphone is activated
     public static boolean isScreenOn() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-            DisplayManager dm = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            DisplayManager dm = (DisplayManager) MyApp.getContext().getSystemService(Context.DISPLAY_SERVICE);
             boolean screenOn = false;
             for (Display display : dm.getDisplays()) {
                 if (display.getState() != Display.STATE_OFF) {
@@ -469,7 +487,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return screenOn;
         } else {
-            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            PowerManager pm = (PowerManager) MyApp.getContext().getSystemService(Context.POWER_SERVICE);
             return pm.isScreenOn();
         }
     }
@@ -486,7 +504,7 @@ public class MainActivity extends AppCompatActivity {
                 String msg = "";
                 try {
                     if (gcm == null) {
-                        gcm = GoogleCloudMessaging.getInstance(context);
+                        gcm = GoogleCloudMessaging.getInstance(MyApp.getContext());
                     }
                     regId = gcm.register(ApplicationConstants.SENDER_ID);
                     msg = "Registration ID :" + regId;
@@ -507,7 +525,7 @@ public class MainActivity extends AppCompatActivity {
                     storeRegIdinServer(regId, usernameId, passwordId);
                 } else {
                     Toast.makeText(
-                            context,
+                            MyApp.getContext(),
                             getString(R.string.registration_failed)
                                     + msg, Toast.LENGTH_LONG).show();
                     prgDialog.hide();
@@ -526,14 +544,14 @@ public class MainActivity extends AppCompatActivity {
                 String msg = "";
                 try {
                     if (gcm == null) {
-                        gcm = GoogleCloudMessaging.getInstance(context);
+                        gcm = GoogleCloudMessaging.getInstance(MyApp.getContext());
                     }
                     gcm.unregister();
                 } catch (IOException ex) {
                     msg = "Error :" + ex.getMessage();
 
                     Toast.makeText(
-                            context, context.getString(R.string.deregistration_failed)
+                            MyApp.getContext(), MyApp.getContext().getString(R.string.deregistration_failed)
                              + msg, Toast.LENGTH_LONG).show();
                 }
                 return msg;
@@ -541,6 +559,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(String msg) {
+                deletePreferencesInSharedPref();
+                deletePreferencesInServer();
                 deleteRegIdinServer(deleteRegId, deleteUsernameId);
             }
         }.execute(null, null, null);
@@ -555,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
                 GooglePlayServicesUtil.getErrorDialog(resultColde, this, PLAY_SERVICES_RESOLUTION_REQUEST).show();
             } else {
                 Toast.makeText(
-                        context,
+                        MyApp.getContext(),
                         R.string.message_checkplayservices,
                         Toast.LENGTH_LONG).show();
                 Log.i(TAG, "This device is not supported.");
@@ -603,7 +623,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete RegId and Username entered by User in SharedPref
-    private static void deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
+    private static void  deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
         Preferences.editor = Preferences.prefs.edit();
         Preferences.editor.remove(myPreferences.REG_ID);
         Preferences.editor.remove(myPreferences.USERNAME_ID);
@@ -618,32 +638,16 @@ public class MainActivity extends AppCompatActivity {
         Preferences.editor.commit();
 
         // Hide Progress Dialog
-        prgDialogMessageListActivity.hide();
-        if (prgDialogMessageListActivity != null) {
-            prgDialogMessageListActivity.dismiss();
-        }
+        hidePrgDialog();
     }
 
     // Share RegID with GCM Server Application (Php)
     private void storeRegIdinServer(String regId2, final String usernameId, final String passwordId) {
-        String loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, usernameId, passwordId, regId);
+        loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, usernameId, passwordId, regId);
         Log.i(TAG, "storeRegIdinServer - loginLink: " + loginLink);
 
-        // Make RESTful webservice call using AsyncHttpClient object
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(null, null);
-            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
-            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            client.setSSLSocketFactory(sf);
-        } catch (Exception e) {
-            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
-        }
+        serverAuthentication();
 
-        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
-        client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
-                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         myCookieStore.clear();
         client.setCookieStore(myCookieStore);
 
@@ -660,10 +664,10 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 Log.i(TAG, "storeRegIdinServer onSuccess: " + statusCode);
 
-                Toast.makeText(context,
+                Toast.makeText(MyApp.getContext(),
                         R.string.message_storeRegIdinServer_success,
                         Toast.LENGTH_LONG).show();
-                Intent i = new Intent(context,
+                Intent i = new Intent(MyApp.getContext(),
                         MainActivity.class);
                 i.putExtra("regId", regId);
 
@@ -671,43 +675,41 @@ public class MainActivity extends AppCompatActivity {
 
                 storeRegIdinSharedPref(regId, usernameId, passwordId);
 
-                messageIntent = new Intent(context, MessageListActivity.class);
+                hidePrgDialog();
+
+                messageIntent = new Intent(MyApp.getContext(), MessageListActivity.class);
                 startActivity(messageIntent);
                 finish();
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                // Hide Progress Dialog
-                prgDialog.hide();
-                if (prgDialog != null) {
-                    prgDialog.dismiss();
-                }
+                hidePrgDialog();
 
                 Log.i(TAG, "storeRegIdinServer onFailure: " + statusCode);
 
                 // When Http response code is '400'
                 if (statusCode == 400) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_400,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '404'
                 else if (statusCode == 404) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
-                            context,
+                            MyApp.getContext(),
                             R.string.message_regIdinServer_failure,
                             Toast.LENGTH_LONG).show();
                 }
@@ -720,21 +722,8 @@ public class MainActivity extends AppCompatActivity {
         String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
-        // Make RESTful webservice call using AsyncHttpClient object
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(null, null);
-            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
-            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            client.setSSLSocketFactory(sf);
-        } catch (Exception e) {
-            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
-        }
+        serverAuthentication();
 
-        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
-        client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
-                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         client.setCookieStore(myCookieStore);
 
         Log.i(TAG, "Cookies deleteRegIdinServer: " + myCookieStore.getCookies().toString());
@@ -747,17 +736,19 @@ public class MainActivity extends AppCompatActivity {
                 deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
 
                 Toast.makeText(
-                        context,
+                        MyApp.getContext(),
                         R.string.message_deleteRegIdinServer_success
                         , Toast.LENGTH_SHORT).show();
 
                 myPreferences.storedUsernameId = "";
-                context.deleteDatabase(myMessageRepo.myDatabaseHelper.DATABASE_NAME);
+                MyApp.getContext().deleteDatabase(myDatabaseHelper.DATABASE_NAME);
                 myCookieStore.clear();
 
-                loginIntent = new Intent(context, MainActivity.class);
+                hideLogoutPrgDialog();
+
+                loginIntent = new Intent(MyApp.getContext(), MainActivity.class);
                 loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(loginIntent);
+                MyApp.getContext().startActivity(loginIntent);
                 activity.finish();
             }
 
@@ -765,32 +756,35 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode);
 
-                // When the response returned by REST has Http
-                // response code other than '200' such as '404',
-                // '500' or '403' etc
-                // Hide Progress Dialog
-                prgDialogMessageListActivity.hide();
-                if (prgDialogMessageListActivity != null) {
-                    prgDialogMessageListActivity.dismiss();
+                // When Http response code is '0' or '401'
+                if (statusCode == 401 || statusCode == 0) {
+                    if (deleteRegIdinServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                        loginRefresh();
+                        deleteRegIdinServerTimeout++;
+                        deleteRegIdinServer(deleteRegId, deleteUsernameId);
+                    } else {
+                        Toast.makeText(MyApp.getContext(),
+                                R.string.message_server_failure_401,
+                                Toast.LENGTH_LONG).show();
+                    }
                 }
-
                 // When Http response code is '404'
-                if (statusCode == 404) {
-                    Toast.makeText(context,
-                            R.string.message_regIdinServer_failure_404,
+                else if (statusCode == 404) {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_server_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
-                    Toast.makeText(context,
-                            R.string.message_regIdinServer_failure_500,
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_server_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
-                            context,
-                            R.string.message_regIdinServer_failure,
+                            MyApp.getContext(),
+                            R.string.message_server_failure,
                             Toast.LENGTH_LONG).show();
                 }
             }
@@ -800,8 +794,8 @@ public class MainActivity extends AppCompatActivity {
 
     // New message is received
     public static void getNewMessage() {
-        Toast.makeText(context, context.getString(R.string.new_json_string), Toast.LENGTH_LONG).show();
-        Log.i(TAG, "getNewMessage --> show toast; " + context.getString(R.string.new_json_string));
+        Toast.makeText(MyApp.getContext(), MyApp.getContext().getString(R.string.new_json_string), Toast.LENGTH_LONG).show();
+        Log.i(TAG, "getNewMessage --> show toast; " + MyApp.getContext().getString(R.string.new_json_string));
     }
 
     public void buttonLogin(View view) {
@@ -815,8 +809,16 @@ public class MainActivity extends AppCompatActivity {
         values.put(Message.COL_TIME, message.time);
         values.put(Message.COL_TYPE, message.type);
         values.put(Message.COL_COMMENT, message.comment);
+        values.put(Message.COL_READ, 0);
 
-        myMessageRepo.insert(message);
+        if (myMessageRepo == null) {
+            myMessageRepo = new MessageRepo();
+        }
+
+        Log.i(TAG, "addMessage: values = " + values + ", myMessageRepo = " + myMessageRepo +
+                ", myDatabaseHelper = " + myDatabaseHelper);
+
+        myMessageRepo.insert(values);
 
         if (!isAppInBackground()) {
             MessageListFragment.refreshListView();
@@ -829,27 +831,13 @@ public class MainActivity extends AppCompatActivity {
 
         final PreferencesJsonString myPreferencesJsonString = new PreferencesJsonString();
 
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(null, null);
-            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
-            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            //client.setTimeout(30*1000);
-            client.setSSLSocketFactory(sf);
-        } catch (Exception e) {
-            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
-        }
+        serverAuthentication();
 
-        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME,
-                ApplicationConstants.BUENOI_PASSWORD, true);
-        client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
-                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         client.setCookieStore(myCookieStore);
 
         Log.i(TAG, "Cookies getUserSettings: " + myCookieStore.getCookies().toString());
 
-        client.get(context, getUserSettingsLink[0], new TextHttpResponseHandler() {
+        client.get(MyApp.getContext(), getUserSettingsLink[0], new TextHttpResponseHandler() {
             @Override
             public void onStart() {
                 Log.i(TAG, "getUserSettingsLink Request starts!");
@@ -857,16 +845,18 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
-                String businessId = "";
                 Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode + ", " + responseString);
+
 
                 try {
                     myPreferencesJsonString.getPreferences(responseString);
 
                     storePreferencesInSharedPref();
 
-                    preferencesIntent = new Intent(context, PreferencesActivity.class);
-                    context.startActivity(preferencesIntent);
+                    hideMessagePrgDialog();
+
+                    preferencesIntent = new Intent(MyApp.getContext(), PreferencesActivity.class);
+                    MyApp.getContext().startActivity(preferencesIntent);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -877,22 +867,34 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
                 Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode + ", " + responseString);
 
+                // When Http response code is '0' or '401'
+                if (statusCode == 401 || statusCode == 0) {
+                    if (getUserSettingsTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                        loginRefresh();
+                        getUserSettingsTimeout++;
+                        getUserSettings();
+                    } else {
+                        Toast.makeText(MyApp.getContext(),
+                                R.string.message_regIdinServer_failure_401,
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
                 // When Http response code is '404'
-                if (statusCode == 404) {
-                    Toast.makeText(context,
+                else if (statusCode == 404) {
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
-                            context,
+                            MyApp.getContext(),
                             R.string.message_regIdinServer_failure,
                             Toast.LENGTH_LONG).show();
                 }
@@ -909,6 +911,18 @@ public class MainActivity extends AppCompatActivity {
         Preferences.editor.putInt(myPreferences.PREF_OLD_INBOX_MESSAGES, myPreferences.storedOldInboxMessages);
         Preferences.editor.putInt(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, myPreferences.storedFlatRateRequestArrived);
         Preferences.editor.putInt(myPreferences.PREF_CONTACT_FORM, myPreferences.storedContactForm);
+        Preferences.editor.commit();
+    }
+
+    public static void deletePreferencesInSharedPref() {
+        Preferences.editor = Preferences.prefs.edit();
+        Preferences.editor.remove(myPreferences.PREF_INSTANT_BOOKING_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_OFFER_ADOPTED);
+        Preferences.editor.remove(myPreferences.PREF_OFFER_REJECTED);
+        Preferences.editor.remove(myPreferences.PREF_INQUIRY_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_OLD_INBOX_MESSAGES);
+        Preferences.editor.remove(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED);
+        Preferences.editor.remove(myPreferences.PREF_CONTACT_FORM);
         Preferences.editor.commit();
     }
 
@@ -933,21 +947,8 @@ public class MainActivity extends AppCompatActivity {
                 .APP_SERVER_SET_USER_SETTINGS, preferenceString);
         Log.i(TAG, "storePreferencesInServer - loginLink: " + storePreferencesLink);
 
-        // Make RESTful webservice call using AsyncHttpClient object
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(null, null);
-            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
-            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            client.setSSLSocketFactory(sf);
-        } catch (Exception e) {
-            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
-        }
+        serverAuthentication();
 
-        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
-        client.addHeader("Authorization", "Basic " +
-                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
-                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
         client.setCookieStore(myCookieStore);
 
         Log.i(TAG, "Cookies storePreferencesInServer: " + myCookieStore.getCookies().toString());
@@ -955,33 +956,249 @@ public class MainActivity extends AppCompatActivity {
         client.post(storePreferencesLink, new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                Toast.makeText(context,
+                Log.i(TAG, "storePreferencesInServer onSuccess: " + statusCode);
+
+                Toast.makeText(MyApp.getContext(),
                         R.string.message_storePreferencesInServer_success,
                         Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Log.i(TAG, "storePreferencesInServer onFailure: " + statusCode);
+
+                // When Http response code is '0' or '401'
+                if (statusCode == 401 || statusCode == 0) {
+                    if (storePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                        loginRefresh();
+                        storePreferencesInServerTimeout++;
+                        storePreferencesInServer();
+                    } else {
+                        Toast.makeText(MyApp.getContext(),
+                                R.string.message_regIdinServer_failure_401,
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
                 // When Http response code is '404'
                 if (statusCode == 404) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code is '500'
                 else if (statusCode == 500) {
-                    Toast.makeText(context,
+                    Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
-                            context,
+                            MyApp.getContext(),
                             R.string.message_regIdinServer_failure,
                             Toast.LENGTH_LONG).show();
                 }
             }
         });
+    }
+
+    public static void deletePreferencesInServer() {
+        String preferenceString = myPreferences.storedBusinessId;
+
+        String deletePreferencesLink = String.format(ApplicationConstants
+                .APP_SERVER_SET_USER_SETTINGS, preferenceString);
+        Log.i(TAG, "deletePreferencesInServer - loginLink: " + deletePreferencesLink);
+
+        serverAuthentication();
+
+        client.setCookieStore(myCookieStore);
+
+        Log.i(TAG, "Cookies deletePreferencesInServer: " + myCookieStore.getCookies().toString());
+
+        client.post(deletePreferencesLink, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Log.i(TAG, "deletePreferencesInServer onSuccess: " + statusCode);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Log.i(TAG, "deletePreferencesInServer onFailure: " + statusCode);
+                // When Http response code is '0' or '401'
+                if (statusCode == 401 || statusCode == 0) {
+                    if (deletePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                        loginRefresh();
+                        deletePreferencesInServerTimeout++;
+                        deletePreferencesInServer();
+                    } else {
+                        Toast.makeText(MyApp.getContext(),
+                                R.string.message_regIdinServer_failure_401,
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+        });
+    }
+
+    public static void serverAuthentication() {
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            at.snowreporter.buenoi.database.MySSLSocketFactory sf = new at.snowreporter.buenoi.database.MySSLSocketFactory(trustStore);
+            sf.setHostnameVerifier(at.snowreporter.buenoi.database.MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client.setSSLSocketFactory(sf);
+        } catch (Exception e) {
+            Log.i(TAG, "Exception MySSLSocketFactory: " + e.toString());
+        }
+
+        client.setAuthenticationPreemptive(true);
+        client.setBasicAuth(ApplicationConstants.BUENOI_USERNAME, ApplicationConstants.BUENOI_PASSWORD);
+        client.addHeader("Authorization", "Basic " +
+                Base64.encodeToString((ApplicationConstants.BUENOI_USERNAME + ":" +
+                        ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
+    }
+
+    public static void loginRefresh() {
+        String prefRegId = Preferences.prefs.getString(myPreferences.REG_ID, "");
+        String prefUsernameId = Preferences.prefs.getString(myPreferences.USERNAME_ID, "");
+        String prefPasswordId = Preferences.prefs.getString(myPreferences.PASSWORD_ID, "");
+
+        loginLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGIN, prefUsernameId, prefPasswordId, prefRegId);
+
+        Log.i(TAG, "loginRefresh - loginLink: " + loginLink);
+
+        serverAuthentication();
+
+        client.setCookieStore(myCookieStore);
+
+        client.post(loginLink, new AsyncHttpResponseHandler() {
+            @Override
+            public void onStart() {
+                super.onStart();
+                Log.i(TAG, "AsyncHttpClient Request starts!");
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Log.i(TAG, "loginRefresh onSuccess: " + statusCode);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                // Hide Progress Dialog
+                Log.i(TAG, "loginRefresh onFailure: " + statusCode);
+            }
+        });
+    }
+
+    public static void getServerStatus() {
+        final String[] getServerStatusLink = {String.format(ApplicationConstants.APP_SERVER_STATUS)};
+        Log.i(TAG, "getServerStatus - getServerStatusLink: " + getServerStatusLink[0]);
+
+        final PreferencesJsonString myPreferencesJsonString = new PreferencesJsonString();
+
+        serverAuthentication();
+
+        client.setCookieStore(myCookieStore);
+
+        Log.i(TAG, "Cookies getServerStatus: " + myCookieStore.getCookies().toString());
+
+        client.get(MyApp.getContext(), getServerStatusLink[0], new TextHttpResponseHandler() {
+            @Override
+            public void onStart() {
+                Log.i(TAG, "getServerStatusLink Request starts!");
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                String businessId = "";
+                Log.i(TAG, "getServerStatusLink - onSuccess: " + statusCode + ", " + responseString);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+                Log.i(TAG, "getServerStatusLink - onFailure: " + statusCode + ", " + responseString);
+
+                // When Http response code is '404'
+                if (statusCode == 401 || statusCode == 0) {
+                }
+                // When Http response code is '404'
+                else if (statusCode == 404) {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_regIdinServer_failure_404,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_regIdinServer_failure_500,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code other than 404, 500
+                else {
+                    Toast.makeText(
+                            MyApp.getContext(),
+                            R.string.message_regIdinServer_failure,
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    private static void hidePrgDialog() {
+        // Hide Progress Dialog
+        prgDialog.hide();
+        if (prgDialog != null) {
+            prgDialog.dismiss();
+        }
+    }
+
+    private static void hideMessagePrgDialog() {
+        // Hide Progress Dialog
+        messagePrgDialog.hide();
+        if (messagePrgDialog != null) {
+            messagePrgDialog.dismiss();
+        }
+    }
+
+    private static void hideLogoutPrgDialog() {
+        // Hide Progress Dialog
+        logoutPrgDialog.hide();
+        if (logoutPrgDialog != null) {
+            logoutPrgDialog.dismiss();
+        }
+    }
+
+    public static String modifiedTypeText(String type) {
+        String modTypeText = "";
+
+        switch (type) {
+            case "sofortbuchung_eingelangt":
+                modTypeText = MyApp.getContext().getString(R.string.instant_booking_arrived);
+                break;
+            case "angebot_angenommen":
+                modTypeText = MyApp.getContext().getString(R.string.offer_adopted);
+                break;
+            case "angebot_abgelehnt":
+                modTypeText = MyApp.getContext().getString(R.string.offer_rejected);
+                break;
+            case "anfrage_eingelangt":
+                modTypeText = MyApp.getContext().getString(R.string.inquiry_arrived);
+                break;
+            case "old_inbox_messages":
+                modTypeText = MyApp.getContext().getString(R.string.old_inbox_messages);
+                break;
+            case "anfrage_pauschale_eingelangt":
+                modTypeText = MyApp.getContext().getString(R.string.flat_rate_request_arrived);
+                break;
+            case "kontakt_formular":
+                modTypeText = MyApp.getContext().getString(R.string.contact_form);
+                break;
+            default:
+                modTypeText = MyApp.getContext().getString(R.string.undefine_type);
+                break;
+        }
+
+        return modTypeText;
     }
 }

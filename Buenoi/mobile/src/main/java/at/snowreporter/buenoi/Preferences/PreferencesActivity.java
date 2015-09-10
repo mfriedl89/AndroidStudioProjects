@@ -1,16 +1,15 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.Preferences;
 
 import android.app.ProgressDialog;
-import android.preference.PreferenceActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+
+import at.snowreporter.buenoi.MainActivity;
+import at.snowreporter.buenoi.R;
 
 public class PreferencesActivity extends AppCompatActivity {
 
@@ -34,18 +33,18 @@ public class PreferencesActivity extends AppCompatActivity {
     Boolean flatRateRequestArrived;
     Boolean contactForm;
 
-    private static ProgressDialog prgDialog;
+    private static ProgressDialog preferencePrgDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preferences);
 
-        prgDialog = new ProgressDialog(this);
+        preferencePrgDialog = new ProgressDialog(this);
         // Set Progress Dialog Text
-        prgDialog.setMessage(getString(R.string.prg_dialog_messagetext));
+        preferencePrgDialog.setMessage(getString(R.string.prg_dialog_messagetext));
         // Set Cancelable as False
-        prgDialog.setCancelable(false);
+        preferencePrgDialog.setCancelable(false);
 
         checkBoxInstantBookingArrived = (CheckBox) findViewById(R.id.checkBox_instant_booking_arrived);
         checkBoxOfferAdopted = (CheckBox) findViewById(R.id.checkBox_offer_adopted);
@@ -78,7 +77,7 @@ public class PreferencesActivity extends AppCompatActivity {
 
     public void onClickButtonSave(View view) {
         // Show progress dialog
-        prgDialog.show();
+        preferencePrgDialog.show();
 
         instantBookingArrived = checkBoxInstantBookingArrived.isChecked();
         offerAdopted = checkBoxOfferAdopted.isChecked();
@@ -95,10 +94,7 @@ public class PreferencesActivity extends AppCompatActivity {
 
         MainActivity.storePreferencesInServer();
 
-        prgDialog.hide();
-        if (prgDialog != null) {
-            prgDialog.dismiss();
-        }
+        hidePreferencePrgDialog();
 
         buttonSave.setEnabled(false);
     }
@@ -108,6 +104,14 @@ public class PreferencesActivity extends AppCompatActivity {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             buttonSave.setEnabled(true);
+        }
+    }
+
+    public static void hidePreferencePrgDialog() {
+        // Hide Progress Dialog
+        preferencePrgDialog.hide();
+        if (preferencePrgDialog != null) {
+            preferencePrgDialog.dismiss();
         }
     }
 }

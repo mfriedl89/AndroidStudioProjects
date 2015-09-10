@@ -27,6 +27,7 @@
 		5F99610C1AE0CF4F0034F503 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5F9961071AE0CF4F0034F503 /* LaunchScreen.xib */; };
 		5F99610D1AE0CF4F0034F503 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5F9961071AE0CF4F0034F503 /* LaunchScreen.xib */; };
 		B8088EE7BE07B2DACA2C0DEF /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7DD6BAAD64060697695C7E6F /* libPods.a */; };
+		E0A7FE001BA07608002EA784 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E0A7FDFF1BA07608002EA784 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -55,6 +56,7 @@
 		7DD6BAAD64060697695C7E6F /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A7DD069E8A20B78DF5D5C4F8 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 		C2E6F230E4E8519F7E937772 /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
+		E0A7FDFF1BA07608002EA784 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +110,7 @@
 		5F5A53431ADE670C00F81DF0 = {
 			isa = PBXGroup;
 			children = (
+				E0A7FDFF1BA07608002EA784 /* GoogleService-Info.plist */,
 				5F5A534E1ADE670C00F81DF0 /* GcmExample */,
 				5F5A537A1ADE67D500F81DF0 /* GcmExampleSwift */,
 				2C6749C41AE9975A00F9AB0A /* GcmServerDemo */,
@@ -260,6 +263,7 @@
 		5F5A53441ADE670C00F81DF0 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 0700;
 				LastUpgradeCheck = 0630;
 				ORGANIZATIONNAME = "Google Inc.";
 				TargetAttributes = {
@@ -313,6 +317,7 @@
 			files = (
 				5F99610C1AE0CF4F0034F503 /* LaunchScreen.xib in Resources */,
 				5F99610A1AE0CF4F0034F503 /* Images.xcassets in Resources */,
+				E0A7FE001BA07608002EA784 /* GoogleService-Info.plist in Resources */,
 				5F5A535B1ADE670C00F81DF0 /* Main.storyboard in Resources */,
 				5F9961081AE0CF4F0034F503 /* Icon@2x.png in Resources */,
 			);

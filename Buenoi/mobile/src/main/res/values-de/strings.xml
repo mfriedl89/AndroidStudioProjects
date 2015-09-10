@@ -35,11 +35,15 @@
     <string name="flat_rate_request_arrived">Pauschalanfrage erhalten</string>
     <string name="enter_valid_email">Bitte gültigen Benutzername eingeben!</string>
     <string name="deregistration_failed">Abmeldung fehlgeschlagen.\n\nEntweder haben Sie keine Internetverbindung oder der GCM-Server ist zur Zeit nicht erreichbar. Überprüfen Sie die Internetverbindung und versuchen Sie die Abmeldung später noch einmal.</string>
-    <string name="email" translatable="false"></string>
+    <string name="email" translatable="false">E-Mail</string>
     <string name="contact_form">Kontaktformular</string>
     <string name="cancel">Abbrechen</string>
     <string name="action_info">Informationen</string>
     <string name="settings">Einstellungen</string>
     <string name="title_activity_settings">Einstellungen</string>
     <string name="no_message">Keine Nachrichten</string>
+    <string name="undefine_type">Unbekannte Type</string>
+    <string name="message_regIdinServer_failure_401">Nicht authorisiert! Versuchen Sie es später noch einmal!</string>
+    <string name="logout_prg_dialog_messagetext">Vom Server abmelden. Bitte warten...</string>
+    <string name="message_prg_dialog_messagetext">Einstellungen vom Server laden. Bitte warten...</string>
 </resources>

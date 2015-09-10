@@ -2,13 +2,16 @@ package at.snowreporter.buenoi;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.Loader;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+
+import at.snowreporter.buenoi.MessageList.MessageDetailActivity;
+import at.snowreporter.buenoi.MessageList.MessageDetailFragment;
+import at.snowreporter.buenoi.MessageList.MessageListFragment;
 
 
 /**
@@ -45,13 +48,13 @@ public class MessageListActivity extends AppCompatActivity
 
         MainActivity.activity = this;
 
-        MainActivity.context = this;
+        MainActivity.messagePrgDialog = new ProgressDialog(this);
+        MainActivity.messagePrgDialog.setMessage(getString(R.string.message_prg_dialog_messagetext));
+        MainActivity.messagePrgDialog.setCancelable(false);
 
-        MainActivity.prgDialogMessageListActivity = new ProgressDialog(this);
-        // Set Progress Dialog Text
-        MainActivity.prgDialogMessageListActivity.setMessage(getString(R.string.prg_dialog_messagetext));
-        // Set Cancelable as False
-        MainActivity.prgDialogMessageListActivity.setCancelable(false);
+        MainActivity.logoutPrgDialog = new ProgressDialog(this);
+        MainActivity.logoutPrgDialog.setMessage(getString(R.string.logout_prg_dialog_messagetext));
+        MainActivity.logoutPrgDialog.setCancelable(false);
 
         textViewNoMessage = (TextView)findViewById(R.id.textViewNoMessages);
 
@@ -108,15 +111,18 @@ public class MessageListActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            MainActivity.messagePrgDialog.show();
             MainActivity.showSettings();
+
             return true;
         }
         else if (id == R.id.action_info) {
             MainActivity.showInfo();
+
             return true;
         }
         else if (id == R.id.action_login_logout) {
-            MainActivity.prgDialogMessageListActivity.show();
+            MainActivity.logoutPrgDialog.show();
             MainActivity.logout();
 
             return true;

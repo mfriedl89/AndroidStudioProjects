@@ -1,4 +1,4 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.GMS;
 
 import android.app.Activity;
 import android.content.ComponentName;

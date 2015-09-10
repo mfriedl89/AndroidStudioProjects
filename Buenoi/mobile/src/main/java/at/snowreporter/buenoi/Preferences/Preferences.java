@@ -1,4 +1,4 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.Preferences;
 
 import android.content.Context;
 import android.content.SharedPreferences;

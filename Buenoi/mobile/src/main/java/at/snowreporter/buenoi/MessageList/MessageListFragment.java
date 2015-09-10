@@ -1,14 +1,17 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.MessageList;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.View;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import java.util.List;
 
+import at.snowreporter.buenoi.MainActivity;
+import at.snowreporter.buenoi.MessageList.MessageDetailFragment;
+import at.snowreporter.buenoi.MessageListActivity;
+import at.snowreporter.buenoi.R;
 import at.snowreporter.buenoi.database.Message;
 import at.snowreporter.buenoi.database.MessageItemAdapter;
 

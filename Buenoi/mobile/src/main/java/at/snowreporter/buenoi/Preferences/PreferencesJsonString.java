@@ -1,7 +1,9 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.Preferences;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import at.snowreporter.buenoi.MainActivity;
 
 /**
  * Created by markusfriedl on 25.08.15.

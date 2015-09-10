@@ -20,7 +20,6 @@
         android:minHeight="40dp"
         android:textIsSelectable="true"
         android:layout_alignParentBottom="false"
-        android:layout_alignParentEnd="false"
         android:elegantTextHeight="false"
         android:textSize="50dp" />
 

@@ -1,4 +1,4 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.database;
 
 import java.io.IOException;
 import java.net.Socket;

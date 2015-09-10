@@ -11,7 +11,7 @@
     -->
 
     <fragment android:id="@+id/message_list"
-        android:name="at.snowreporter.buenoi.MessageListFragment" android:layout_width="0dp"
+        android:name="at.snowreporter.buenoi.MessageList.MessageListFragment" android:layout_width="0dp"
         android:layout_height="match_parent" android:layout_weight="1"
         tools:layout="@android:layout/list_content" />
 

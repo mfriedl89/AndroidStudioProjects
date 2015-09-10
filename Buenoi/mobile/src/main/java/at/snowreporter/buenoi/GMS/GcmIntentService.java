@@ -1,4 +1,4 @@
-package at.snowreporter.buenoi;
+package at.snowreporter.buenoi.GMS;
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -16,6 +16,10 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import at.snowreporter.buenoi.MainActivity;
+import at.snowreporter.buenoi.MessageJsonString;
+import at.snowreporter.buenoi.MyApp;
+import at.snowreporter.buenoi.R;
 import at.snowreporter.buenoi.database.Message;
 
 import static com.google.android.gms.internal.zzhl.runOnUiThread;
@@ -63,7 +67,7 @@ public class GcmIntentService extends IntentService {
                         }
                     }
                     sendNotification("Received: " + extras.toString());
-                    Log.i(TAG, "Message: " + message);
+                    Log.i(TAG, "onHandleIntent: extras = " + extras);
 
                 }
             }
@@ -80,7 +84,7 @@ public class GcmIntentService extends IntentService {
             Log.i(TAG, "Initialization for google cloud messaging, no message to show!");
         }
         else {
-            Context context = getApplicationContext();
+            String modTypeText = "";
 
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
@@ -90,32 +94,26 @@ public class GcmIntentService extends IntentService {
             // Split messageString
             Message message = MessageJsonString.splitMessage(msg);
 
+            Log.i(TAG, "sendNotification splitted message: date = " + message.date + ", time = " +
+                    message.time + ", type = " + message.type + ", comment = " + message.comment);
+
             // Add message to the database
             MainActivity.addMessage(message);
 
+            modTypeText = MainActivity.modifiedTypeText(message.type);
+
             NotificationCompat.BigTextStyle textStyle = new NotificationCompat.BigTextStyle();
-            String longTextMessage = msg;
-            textStyle.bigText(message.type);
+            textStyle.bigText(modTypeText);
             textStyle.setSummaryText(message.comment);
-
-            NotificationCompat.InboxStyle inboxStyle =
-                    new NotificationCompat.InboxStyle();
-            String[] events = new String[6];
-            // Sets a title for the Inbox in expanded layout
-            inboxStyle.setBigContentTitle("Event tracker details:");
-
-            // Moves events into the expanded layout
-            for (int i = 0; i < events.length; i++) {
-                inboxStyle.addLine(events[i]);
-            }
 
             final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
 
             if (MainActivity.isAppInBackground() || !MainActivity.isScreenOn()) {
+
                 mBuilder
                         .setSound(alarmSound)
                         .setContentTitle("Buenoi")
-                        .setContentText(message.type)
+                        .setContentText(modTypeText)
                         .setAutoCancel(true)
                         .setContentIntent(contentIntent)
                         .setStyle(textStyle)
@@ -158,7 +156,7 @@ public class GcmIntentService extends IntentService {
             }
 
             Notification notification = mBuilder.build();
-            mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager = (NotificationManager) MyApp.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
             mNotificationManager.notify(NOTIFICATION_ID, notification);
         }
     }

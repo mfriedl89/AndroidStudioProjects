@@ -19,4 +19,7 @@ public class ApplicationConstants {
     static final String APP_SERVER_GET_USER_SETTINGS = "https://test.buenoi.com/appapi/?controller=NachrichtenEinstellungen&action=get";
     static final String APP_SERVER_SET_USER_SETTINGS = "https://test.buenoi.com/appapi/?controller=NachrichtenEinstellungen&action=set&betrieb_id=%s";
     static final String APP_SERVER_STATUS = "https://test.buenoi.com/appapi/?controller=Session&action=status";
+
+    // Times for Server-Timeout
+    static final Integer SERVER_TIMEOUT = 5;
 }

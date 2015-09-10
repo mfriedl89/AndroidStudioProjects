@@ -1,8 +1,9 @@
 package at.snowreporter.buenoi.database;
 
-import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import at.snowreporter.buenoi.MyApp;
 
 /**
  * Created by snowreporter on 27.07.2015.
@@ -12,8 +13,8 @@ public class MyDatabaseHelper extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "buenoi_database.db";
     public static final int DATABASE_VERSION = 1;
 
-    public MyDatabaseHelper(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    public MyDatabaseHelper() {
+        super(MyApp.getContext(), DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
@@ -23,7 +24,8 @@ public class MyDatabaseHelper extends SQLiteOpenHelper {
                 + Message.COL_DATE + " DATE NOT NULL,"
                 + Message.COL_TIME + " TIME NOT NULL,"
                 + Message.COL_TYPE + " TEXT NOT NULL,"
-                + Message.COL_COMMENT + " TEXT"
+                + Message.COL_COMMENT + " TEXT,"
+                + Message.COL_READ + " INTEGER NOT NULL default 0"
                 + ");";
 
         db.execSQL(CREATE_TABLE_MESSAGE);

@@ -13,6 +13,7 @@ public class Message {
     public static final String COL_TIME = "time";
     public static final String COL_TYPE = "type";
     public static final String COL_COMMENT = "comment";
+    public static final String COL_READ = "read";
 
     // Property help us to keep data
     public Integer message_ID;
@@ -20,15 +21,17 @@ public class Message {
     public String time;
     public String type;
     public String comment;
+    public Integer read;
 
     public Message() {
 
     }
 
-    public Message(String dateCon, String timeCon, String typeCon, String commentCon) {
+    public Message(String dateCon, String timeCon, String typeCon, String commentCon, Integer readCon) {
         this.date = dateCon;
         this.time = timeCon;
         this.type = typeCon;
         this.comment = commentCon;
+        this.read = readCon;
     }
 }
