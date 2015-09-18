@@ -1,5 +1,6 @@
 package at.snowreporter.buenoi.MessageList;
 
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
@@ -12,7 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Toast;
+import android.widget.Button;
 
 import com.baoyz.swipemenulistview.SwipeMenu;
 import com.baoyz.swipemenulistview.SwipeMenuCreator;
@@ -107,10 +108,10 @@ public class MessageListActivity extends AppCompatActivity
         };
 
         // set creator
-        MessageListActivity.menuListView.setMenuCreator(creator);
+        menuListView.setMenuCreator(creator);
 
         // step 2. listener item click event
-        MessageListActivity.menuListView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
+        menuListView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
                 switch (index) {
@@ -126,21 +127,23 @@ public class MessageListActivity extends AppCompatActivity
         });
 
         // set SwipeListener
-        MessageListActivity.menuListView.setOnSwipeListener(new SwipeMenuListView.OnSwipeListener() {
+        menuListView.setOnSwipeListener(new SwipeMenuListView.OnSwipeListener() {
 
             @Override
             public void onSwipeStart(int position) {
                 // swipe start
+                Log.i(TAG, "onSwipeStart - position: " + position);
             }
 
             @Override
             public void onSwipeEnd(int position) {
                 // swipe end
+                Log.i(TAG, "onSwipeEnd - position: " + position);
             }
         });
 
         // set MenuStateChangeListener
-        MessageListActivity.menuListView.setOnMenuStateChangeListener(new SwipeMenuListView.OnMenuStateChangeListener() {
+        menuListView.setOnMenuStateChangeListener(new SwipeMenuListView.OnMenuStateChangeListener() {
             @Override
             public void onMenuOpen(int position) {
             }
@@ -154,12 +157,14 @@ public class MessageListActivity extends AppCompatActivity
 //		listView.setCloseInterpolator(new BounceInterpolator());
 
         // test item long click
-        MessageListActivity.menuListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        menuListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view,
                                            int position, long id) {
-                Toast.makeText(getApplicationContext(), position + " long click", Toast.LENGTH_SHORT).show();
+                messageId = myMessageItemAdapter.getItem(position).message_ID;
+                MainActivity.myMessageRepo.updateRowMarkAsRead(messageId);
+                refreshListView();
                 return false;
             }
         });
@@ -169,9 +174,6 @@ public class MessageListActivity extends AppCompatActivity
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 messageId = myMessageItemAdapter.getItem(position).message_ID;
-
-                Log.i(TAG, "setOnItemClickListener, position: " + position + ", id: " + id + ", messageId: " + messageId);
-
                 onItemSelected(MainActivity.myMessageRepo.getMessageById(messageId).message_ID.toString());
             }
         });
@@ -238,9 +240,7 @@ public class MessageListActivity extends AppCompatActivity
             return true;
         }
         else if (id == R.id.action_login_logout) {
-            MainActivity.logoutPrgDialog.show();
-            MainActivity.activity = this;
-            MainActivity.logout();
+            logoutDialog();
 
             return true;
         }
@@ -287,5 +287,31 @@ public class MessageListActivity extends AppCompatActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void logoutDialog() {
+        final Dialog logoutDialog = new Dialog(this);
+        logoutDialog.setTitle(R.string.logout);
+        logoutDialog.setContentView(R.layout.logout_customdialog_layout);
+        logoutDialog.show();
+
+        final Button logoutAlertButtonCancel = (Button) logoutDialog.findViewById(R.id.logoutButtonCancel);
+        final Button logoutAlertButtonLogin = (Button) logoutDialog.findViewById(R.id.logoutButtonLogout);
+
+        logoutAlertButtonCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                logoutDialog.cancel();
+            }
+        });
+
+        logoutAlertButtonLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                logoutDialog.cancel();
+                MainActivity.logoutPrgDialog.show();
+                MainActivity.logout();
+            }
+        });
     }
 }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:orientation="vertical" >
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:text="@string/cancel"
+        android:id="@+id/logoutButtonCancel"
+        android:textSize="16sp"
+        android:paddingRight="8dp"
+        android:paddingLeft="8dp"
+        android:textColor="@color/wallet_holo_blue_light"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_below="@+id/textView"
+        android:layout_toLeftOf="@+id/logoutButtonLogout"
+        android:layout_toStartOf="@+id/logoutButtonLogout" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:text="@string/logout"
+        android:id="@+id/logoutButtonLogout"
+        android:textSize="16sp"
+        android:paddingRight="8dp"
+        android:paddingLeft="8dp"
+        android:textColor="@color/wallet_holo_blue_light"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="24dp"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_below="@+id/textView"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="@string/logout_question"
+        android:id="@+id/textView" />
+
+</RelativeLayout>

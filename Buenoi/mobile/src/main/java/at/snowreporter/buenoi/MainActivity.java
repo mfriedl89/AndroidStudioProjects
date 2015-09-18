@@ -49,6 +49,7 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import at.snowreporter.buenoi.MessageList.MessageListActivity;
 import at.snowreporter.buenoi.Preferences.Preferences;
@@ -258,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
         loginAlertEditTextPassword.setTypeface(Typeface.DEFAULT);
         CheckBox loginAlertCheckBoxShowPassword = (CheckBox) loginDialog.findViewById(R.id.loginShowPassword);
         final Button loginAlertButtonCancel = (Button) loginDialog.findViewById(R.id.loginButtonCancel);
-        final Button loginAlertButtonLogin = (Button) loginDialog.findViewById(R.id.loginButtonLogin);
+        final Button loginAlertButtonLogin = (Button) loginDialog.findViewById(R.id.logoutButtonLogout);
         loginAlertButtonLogin.setEnabled(false);
 
         loginAlertButtonCancel.setOnClickListener(new View.OnClickListener() {
@@ -710,7 +711,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete RegID in GCM Server Application (Php)
-    private static void deleteRegIdinServer() {
+    private static Void deleteRegIdinServer() {
         final String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
@@ -751,11 +752,16 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode);
 
                 // When Http response code is '0' or '401'
-                if (statusCode == 401 || statusCode == 0) {
+                if (statusCode == 400 || statusCode == 401 ||statusCode == 0) {
                     if (deleteRegIdinServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh();
+                        loginRefresh(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                deleteRegIdinServer();
+                                return null;
+                            }
+                        });
                         deleteRegIdinServerTimeout++;
-                        deleteRegIdinServer();
                     } else {
                         Toast.makeText(MyApp.getContext(),
                                 R.string.message_server_failure_401,
@@ -783,6 +789,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        return null;
     }
 
 
@@ -817,7 +825,7 @@ public class MainActivity extends AppCompatActivity {
         myMessageRepo.insert(values);
     }
 
-    public static void getUserSettings() {
+    public static Void getUserSettings() {
         final String[] getUserSettingsLink = {String.format(ApplicationConstants.APP_SERVER_GET_USER_SETTINGS)};
         Log.i(TAG, "getUserSettings - getUserSettingsLink: " + getUserSettingsLink[0]);
 
@@ -863,9 +871,13 @@ public class MainActivity extends AppCompatActivity {
                 // When Http response code is '0' or '401'
                 if (statusCode == 401 || statusCode == 0) {
                     if (getUserSettingsTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh();
+                        loginRefresh(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                return getUserSettings();
+                            }
+                        });
                         getUserSettingsTimeout++;
-                        getUserSettings();
                     } else {
                         Toast.makeText(MyApp.getContext(),
                                 R.string.message_regIdinServer_failure_401,
@@ -893,6 +905,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        return null;
     }
 
     public static void storePreferencesInSharedPref() {
@@ -922,7 +936,7 @@ public class MainActivity extends AppCompatActivity {
         deleteRegIdinServer();
     }
 
-    public static void storePreferencesInServer() {
+    public static Void storePreferencesInServer() {
         String preferenceString = myPreferences.storedBusinessId;
         if (myPreferences.storedInstantBookingArrived == 1) { preferenceString +=
                 "&enable[]=sofortbuchung_eingelangt"; }
@@ -966,9 +980,13 @@ public class MainActivity extends AppCompatActivity {
                 // When Http response code is '0' or '401'
                 if (statusCode == 401 || statusCode == 0) {
                     if (storePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh();
+                        loginRefresh(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                return storePreferencesInServer();
+                            }
+                        });
                         storePreferencesInServerTimeout++;
-                        storePreferencesInServer();
                     } else {
                         Toast.makeText(MyApp.getContext(),
                                 R.string.message_regIdinServer_failure_401,
@@ -996,9 +1014,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        return null;
     }
 
-    public static void deletePreferencesInServer() {
+    public static Void deletePreferencesInServer() {
         String preferenceString = myPreferences.storedBusinessId;
 
         String deletePreferencesLink = String.format(ApplicationConstants
@@ -1024,9 +1044,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "deletePreferencesInServer onFailure: " + statusCode);
                 // When Http response code is '0' or '401'
                 if (deletePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                    loginRefresh();
+                    loginRefresh(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            return deletePreferencesInServer();
+                        }
+                    });
                     deletePreferencesInServerTimeout++;
-                    deletePreferencesInServer();
                 } else {
                     Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_401,
@@ -1034,6 +1058,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        return null;
     }
 
     public static void serverAuthentication() {
@@ -1054,7 +1080,7 @@ public class MainActivity extends AppCompatActivity {
                         ApplicationConstants.BUENOI_PASSWORD).getBytes(), Base64.NO_WRAP));
     }
 
-    public static void loginRefresh() {
+    public static void loginRefresh(final Callable<Void> func) {
         String prefRegId = Preferences.prefs.getString(myPreferences.REG_ID, "");
         String prefUsernameId = Preferences.prefs.getString(myPreferences.USERNAME_ID, "");
         String prefPasswordId = Preferences.prefs.getString(myPreferences.PASSWORD_ID, "");
@@ -1077,6 +1103,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 Log.i(TAG, "loginRefresh onSuccess: " + statusCode);
+                try {
+                    func.call();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override

@@ -46,4 +46,5 @@
     <string name="message_regIdinServer_failure_401">Nicht authorisiert! Versuchen Sie es später noch einmal!</string>
     <string name="logout_prg_dialog_messagetext">Vom Server abmelden. Bitte warten...</string>
     <string name="message_prg_dialog_messagetext">Einstellungen vom Server laden. Bitte warten...</string>
+    <string name="logout_question">Wollen Sie sich wirklich abmelden</string>
 </resources>

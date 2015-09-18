@@ -31,8 +31,8 @@ public class MessageItemAdapter extends ArrayAdapter<Message> {
     }
 
     public View getView(int positon, View convertView, ViewGroup parent) {
-        View view = null;
-        String modTypeText = "";
+        View view;
+        String modTypeText;
 
         if (convertView == null) {
             view = inflater.inflate(layoutResourceId, null);
