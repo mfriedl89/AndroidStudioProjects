@@ -6,14 +6,7 @@ import android.support.v4.app.ListFragment;
 import android.view.View;
 import android.widget.ListView;
 
-import java.util.List;
-
-import at.snowreporter.buenoi.MainActivity;
-import at.snowreporter.buenoi.MessageList.MessageDetailFragment;
-import at.snowreporter.buenoi.MessageListActivity;
 import at.snowreporter.buenoi.R;
-import at.snowreporter.buenoi.database.Message;
-import at.snowreporter.buenoi.database.MessageItemAdapter;
 
 /**
  * A list fragment representing a list of Messages. This fragment
@@ -25,9 +18,6 @@ import at.snowreporter.buenoi.database.MessageItemAdapter;
  * interface.
  */
 public class MessageListFragment extends ListFragment {
-
-    // For internal logging
-    static final String TAG = "Buenoi";
 
     /**
      * The serialization (saved instance state) Bundle key representing the
@@ -45,10 +35,6 @@ public class MessageListFragment extends ListFragment {
      * The current activated item position. Only used on tablets.
      */
     private int mActivatedPosition = ListView.INVALID_POSITION;
-
-    public static MessageItemAdapter myMessageItemAdapter;
-
-    public static List<Message> myMessageList;
 
     /**
      * A callback interface that all activities containing this fragment must
@@ -82,15 +68,13 @@ public class MessageListFragment extends ListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        myMessageList = MainActivity.myMessageRepo.getMessageList();
-        myMessageItemAdapter = new MessageItemAdapter(getActivity(), R.layout.message_layout, myMessageList);
-        setListAdapter(myMessageItemAdapter);
     }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        setEmptyText(getString(R.string.no_message));
 
         // Restore the previously serialized activated item position.
         if (savedInstanceState != null
@@ -116,7 +100,6 @@ public class MessageListFragment extends ListFragment {
         super.onDetach();
 
         // Reset the active callbacks interface to the dummy implementation.
-        mCallbacks = messageCallbacks;
     }
 
     @Override
@@ -125,8 +108,6 @@ public class MessageListFragment extends ListFragment {
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-
-        mCallbacks.onItemSelected(MainActivity.myMessageRepo.getMessageById(position + 1).message_ID.toString());
     }
 
     @Override
@@ -158,19 +139,5 @@ public class MessageListFragment extends ListFragment {
         }
 
         mActivatedPosition = position;
-    }
-
-    public static void refreshListView() {
-        myMessageList = MainActivity.myMessageRepo.getMessageList();
-        myMessageItemAdapter.clear();
-        myMessageItemAdapter.addAll(myMessageList);
-        myMessageItemAdapter.notifyDataSetChanged();
-
-        if (myMessageItemAdapter.getCount() < 1) {
-            MessageListActivity.textViewNoMessage.setVisibility(View.VISIBLE);
-        }
-        else {
-            MessageListActivity.textViewNoMessage.setVisibility(View.INVISIBLE);
-        }
     }
 }

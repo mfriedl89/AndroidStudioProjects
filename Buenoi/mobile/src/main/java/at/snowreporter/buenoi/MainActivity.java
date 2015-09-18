@@ -2,7 +2,6 @@ package at.snowreporter.buenoi;
 
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.Application;
 import android.app.Dialog;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
@@ -14,8 +13,8 @@ import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.PowerManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputType;
@@ -39,8 +38,10 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
-
-import com.loopj.android.http.*;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.PersistentCookieStore;
+import com.loopj.android.http.TextHttpResponseHandler;
 
 import org.apache.http.Header;
 import org.json.JSONException;
@@ -49,11 +50,12 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.List;
 
-import at.snowreporter.buenoi.MessageList.MessageListFragment;
+import at.snowreporter.buenoi.MessageList.MessageListActivity;
 import at.snowreporter.buenoi.Preferences.Preferences;
 import at.snowreporter.buenoi.Preferences.PreferencesActivity;
 import at.snowreporter.buenoi.Preferences.PreferencesJsonString;
-import at.snowreporter.buenoi.database.*;
+import at.snowreporter.buenoi.database.Message;
+import at.snowreporter.buenoi.database.MyDatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -241,25 +243,6 @@ public class MainActivity extends AppCompatActivity {
             loggedInUsername.setText(storedLoggedInUsername);
             loggedInText.setVisibility(View.INVISIBLE);
         }
-
-        /*
-        // TODO: Delete testmessage [BEGIN]
-        GregorianCalendar calendar = new GregorianCalendar();
-        DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM);
-        String date = df.format(calendar.getTime());
-        df = DateFormat.getTimeInstance(DateFormat.MEDIUM);
-        String time = df.format(calendar.getTime());
-
-        Message message = new Message();
-        message.date = date;
-        message.time = time;
-        message.type = "anfrage_eingelangt";
-        message.comment = "Testmessage " + date + " " + time;
-        message.read = 0;
-
-        addMessage(message);
-        // TODO: Delete testmessage [END]
-        */
     }
 
     // User login
@@ -559,9 +542,18 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(String msg) {
-                deletePreferencesInSharedPref();
-                deletePreferencesInServer();
-                deleteRegIdinServer(deleteRegId, deleteUsernameId);
+                if (myPreferences.storedInstantBookingArrived != 0 ||
+                        myPreferences.storedOfferAdopted != 0 ||
+                        myPreferences.storedOfferRejected != 0 ||
+                        myPreferences.storedInquiryArrived != 0 ||
+                        myPreferences.storedOldInboxMessages != 0 ||
+                        myPreferences.storedFlatRateRequestArrived != 0 ||
+                        myPreferences.storedContactForm != 0) {
+                    deletePreferencesInServer();
+                }
+                else {
+                    deletePreferencesInSharedPref();
+                }
             }
         }.execute(null, null, null);
     }
@@ -623,7 +615,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete RegId and Username entered by User in SharedPref
-    private static void  deleteRegIdinSharedPref(String deleteRegId, String deleteUsernameId) {
+    private static void  deleteRegIdinSharedPref() {
         Preferences.editor = Preferences.prefs.edit();
         Preferences.editor.remove(myPreferences.REG_ID);
         Preferences.editor.remove(myPreferences.USERNAME_ID);
@@ -718,8 +710,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete RegID in GCM Server Application (Php)
-    private static void deleteRegIdinServer(final String deleteRegId, final String deleteUsernameId) {
-        String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
+    private static void deleteRegIdinServer() {
+        final String logoutLink = String.format(ApplicationConstants.APP_SERVER_USER_LOGOUT);
         Log.i(TAG, "deleteRegIdinServer - logoutLink: " + logoutLink);
 
         serverAuthentication();
@@ -733,7 +725,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 Log.i(TAG, "deleteRegIdinServer - onSuccess: " + statusCode);
 
-                deleteRegIdinSharedPref(deleteRegId, deleteUsernameId);
+                deleteRegIdinSharedPref();
 
                 Toast.makeText(
                         MyApp.getContext(),
@@ -747,9 +739,11 @@ public class MainActivity extends AppCompatActivity {
                 hideLogoutPrgDialog();
 
                 loginIntent = new Intent(MyApp.getContext(), MainActivity.class);
-                loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                MyApp.getContext().startActivity(loginIntent);
+                Log.i(TAG, "deleteRegIdinServer - loginIntent: " + loginIntent);
+                activity.startActivity(loginIntent);
+                Log.i(TAG, "deleteRegIdinServer - activity: " + activity);
                 activity.finish();
+
             }
 
             @Override
@@ -761,7 +755,7 @@ public class MainActivity extends AppCompatActivity {
                     if (deleteRegIdinServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
                         loginRefresh();
                         deleteRegIdinServerTimeout++;
-                        deleteRegIdinServer(deleteRegId, deleteUsernameId);
+                        deleteRegIdinServer();
                     } else {
                         Toast.makeText(MyApp.getContext(),
                                 R.string.message_server_failure_401,
@@ -796,6 +790,8 @@ public class MainActivity extends AppCompatActivity {
     public static void getNewMessage() {
         Toast.makeText(MyApp.getContext(), MyApp.getContext().getString(R.string.new_json_string), Toast.LENGTH_LONG).show();
         Log.i(TAG, "getNewMessage --> show toast; " + MyApp.getContext().getString(R.string.new_json_string));
+        MessageListActivity.refreshListView();
+
     }
 
     public void buttonLogin(View view) {
@@ -819,10 +815,6 @@ public class MainActivity extends AppCompatActivity {
                 ", myDatabaseHelper = " + myDatabaseHelper);
 
         myMessageRepo.insert(values);
-
-        if (!isAppInBackground()) {
-            MessageListFragment.refreshListView();
-        }
     }
 
     public static void getUserSettings() {
@@ -856,6 +848,7 @@ public class MainActivity extends AppCompatActivity {
                     hideMessagePrgDialog();
 
                     preferencesIntent = new Intent(MyApp.getContext(), PreferencesActivity.class);
+                    preferencesIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     MyApp.getContext().startActivity(preferencesIntent);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -904,6 +897,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static void storePreferencesInSharedPref() {
         Preferences.editor = Preferences.prefs.edit();
+        Preferences.editor.putString(myPreferences.BUSINESS_ID, myPreferences.storedBusinessId);
         Preferences.editor.putInt(myPreferences.PREF_INSTANT_BOOKING_ARRIVED, myPreferences.storedInstantBookingArrived);
         Preferences.editor.putInt(myPreferences.PREF_OFFER_ADOPTED, myPreferences.storedOfferAdopted);
         Preferences.editor.putInt(myPreferences.PREF_OFFER_REJECTED, myPreferences.storedOfferRejected);
@@ -924,6 +918,8 @@ public class MainActivity extends AppCompatActivity {
         Preferences.editor.remove(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED);
         Preferences.editor.remove(myPreferences.PREF_CONTACT_FORM);
         Preferences.editor.commit();
+
+        deleteRegIdinServer();
     }
 
     public static void storePreferencesInServer() {
@@ -1007,7 +1003,7 @@ public class MainActivity extends AppCompatActivity {
 
         String deletePreferencesLink = String.format(ApplicationConstants
                 .APP_SERVER_SET_USER_SETTINGS, preferenceString);
-        Log.i(TAG, "deletePreferencesInServer - loginLink: " + deletePreferencesLink);
+        Log.i(TAG, "deletePreferencesInServer - Link: " + deletePreferencesLink);
 
         serverAuthentication();
 
@@ -1019,22 +1015,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 Log.i(TAG, "deletePreferencesInServer onSuccess: " + statusCode);
+
+                deletePreferencesInSharedPref();
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 Log.i(TAG, "deletePreferencesInServer onFailure: " + statusCode);
                 // When Http response code is '0' or '401'
-                if (statusCode == 401 || statusCode == 0) {
-                    if (deletePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh();
-                        deletePreferencesInServerTimeout++;
-                        deletePreferencesInServer();
-                    } else {
-                        Toast.makeText(MyApp.getContext(),
-                                R.string.message_regIdinServer_failure_401,
-                                Toast.LENGTH_LONG).show();
-                    }
+                if (deletePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                    loginRefresh();
+                    deletePreferencesInServerTimeout++;
+                    deletePreferencesInServer();
+                } else {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_regIdinServer_failure_401,
+                            Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -1145,7 +1141,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private static void hidePrgDialog() {
+    public static void hidePrgDialog() {
         // Hide Progress Dialog
         prgDialog.hide();
         if (prgDialog != null) {
@@ -1153,7 +1149,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static void hideMessagePrgDialog() {
+    public static void hideMessagePrgDialog() {
         // Hide Progress Dialog
         messagePrgDialog.hide();
         if (messagePrgDialog != null) {
@@ -1161,7 +1157,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static void hideLogoutPrgDialog() {
+    public static void hideLogoutPrgDialog() {
         // Hide Progress Dialog
         logoutPrgDialog.hide();
         if (logoutPrgDialog != null) {

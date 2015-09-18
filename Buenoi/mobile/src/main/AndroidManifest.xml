@@ -56,24 +56,24 @@
         <service android:name=".GMS.GcmIntentService" />
 
         <activity
-            android:name=".MessageListActivity"
+            android:name=".MessageList.MessageListActivity"
             android:label="@string/title_message_list" >
         </activity>
         <activity
             android:name=".MessageList.MessageDetailActivity"
             android:label="@string/title_message_detail"
-            android:parentActivityName=".MessageListActivity" >
+            android:parentActivityName=".MessageList.MessageListActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="at.snowreporter.buenoi.MessageListActivity" />
+                android:value=".MessageList.MessageListActivity" />
         </activity>
         <activity
             android:name=".Preferences.PreferencesActivity"
             android:label="@string/title_activity_preferences"
-            android:parentActivityName=".MessageListActivity" >
+            android:parentActivityName=".MessageList.MessageListActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="at.snowreporter.buenoi.MessageListActivity" />
+                android:value=".MessageList.MessageListActivity" />
         </activity>
     </application>
 

@@ -6,7 +6,6 @@ import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
-import at.snowreporter.buenoi.MessageListActivity;
 import at.snowreporter.buenoi.R;
 
 

@@ -40,7 +40,7 @@ public class MessageRepo {
 
     public void delete(int message_Id) {
         db = MainActivity.myDatabaseHelper.getReadableDatabase();
-        db.delete(Message.TABLE_MESSAGES, Message.COL_ID + "= ?", new String[]{String.valueOf(Message.COL_ID)});
+        db.delete(Message.TABLE_MESSAGES, Message.COL_ID + "= ?", new String[]{String.valueOf(message_Id)});
         db.close();
     }
 

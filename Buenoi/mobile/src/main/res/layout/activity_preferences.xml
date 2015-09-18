@@ -19,7 +19,7 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_marginBottom="15dp"
-        android:textColor="#aaaaaa"
+        android:textColor="#666666"
         android:textStyle="italic" />
 
     <CheckBox

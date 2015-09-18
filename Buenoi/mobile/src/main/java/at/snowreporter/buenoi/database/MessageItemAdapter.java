@@ -1,7 +1,7 @@
 package at.snowreporter.buenoi.database;
 
-import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,6 +19,7 @@ import at.snowreporter.buenoi.R;
 public class MessageItemAdapter extends ArrayAdapter<Message> {
     private Context context;
     private int layoutResourceId;
+    private LayoutInflater inflater;
     private List<Message> objects = null;
 
     public MessageItemAdapter(Context context, int resource, List<Message> objects) {
@@ -26,24 +27,26 @@ public class MessageItemAdapter extends ArrayAdapter<Message> {
         this.context = context;
         this.layoutResourceId = resource;
         this.objects = objects;
+        this.inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
     public View getView(int positon, View convertView, ViewGroup parent) {
-        View view = convertView;
+        View view = null;
         String modTypeText = "";
 
-        if (view == null) {
-            LayoutInflater inflater = ((Activity) context).getLayoutInflater();
-            view = inflater.inflate(layoutResourceId, parent, false);
+        if (convertView == null) {
+            view = inflater.inflate(layoutResourceId, null);
+        } else {
+            view = convertView;
         }
 
-        Message message = objects.get(positon);
+        final Message message = objects.get(positon);
 
         TextView dateText = (TextView) view.findViewById(R.id.textViewMessageDate);
         dateText.setText(message.date);
 
         TextView timeText = (TextView) view.findViewById(R.id.textViewMessageTime);
-        timeText.setText(message.time);
+        timeText.setText(String.format(message.time, "HH:mm"));
 
         TextView typeText = (TextView) view.findViewById(R.id.textViewMessageType);
         switch (message.type) {
@@ -74,15 +77,28 @@ public class MessageItemAdapter extends ArrayAdapter<Message> {
         }
         typeText.setText(modTypeText);
 
+        TextView commentText = (TextView) view.findViewById(R.id.textViewMessageComment);
+        commentText.setText(message.comment);
+
         if (message.read == 0) {
-            dateText.setTypeface(Typeface.DEFAULT_BOLD);
-            timeText.setTypeface(Typeface.DEFAULT_BOLD);
             typeText.setTypeface(Typeface.DEFAULT_BOLD);
+            typeText.setTextColor(Color.BLACK);
+            commentText.setTypeface(Typeface.DEFAULT);
+            commentText.setTextColor(Color.BLACK);
+            dateText.setTypeface(Typeface.DEFAULT_BOLD);
+            dateText.setTextColor(Color.BLUE);
+            timeText.setTypeface(Typeface.DEFAULT_BOLD);
+            timeText.setTextColor(Color.BLUE);
         }
         else {
-            dateText.setTypeface(Typeface.DEFAULT);
-            timeText.setTypeface(Typeface.DEFAULT);
             typeText.setTypeface(Typeface.DEFAULT);
+            typeText.setTextColor(Color.BLACK);
+            commentText.setTypeface(Typeface.DEFAULT);
+            commentText.setTextColor(Color.BLACK);
+            dateText.setTypeface(Typeface.DEFAULT);
+            dateText.setTextColor(Color.BLACK);
+            timeText.setTypeface(Typeface.DEFAULT);
+            timeText.setTextColor(Color.BLACK);
         }
 
         return view;

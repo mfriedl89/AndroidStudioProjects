@@ -7,9 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-
 import at.snowreporter.buenoi.MainActivity;
-import at.snowreporter.buenoi.MessageListActivity;
 import at.snowreporter.buenoi.R;
 import at.snowreporter.buenoi.database.Message;
 
@@ -48,13 +46,10 @@ public class MessageDetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         if (getArguments().containsKey(ARG_ITEM_ID)) {
-            Integer diffItemId = MainActivity.myMessageRepo.getRowNumbers() -
-                    Integer.parseInt(getArguments().getString(ARG_ITEM_ID)) + 1; // two times '+1' because id in table starts at 1
-
             // Show selected Message in Detail View
-            message = MainActivity.myMessageRepo.getMessageById(diffItemId);
-            MainActivity.myMessageRepo.updateRowMarkAsRead(diffItemId);
-            MessageListFragment.refreshListView();
+            message = MainActivity.myMessageRepo.getMessageById(MessageListActivity.messageId);
+            MainActivity.myMessageRepo.updateRowMarkAsRead(MessageListActivity.messageId);
+            MessageListActivity.refreshListView();
         }
     }
 
