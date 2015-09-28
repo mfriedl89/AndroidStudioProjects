@@ -117,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
 
     // local timeouts for serveral server-services
     public static Integer getUserSettingsTimeout = 0;
-    public static Integer storeRegIdinServerTimeout = 0;
     public static Integer deleteRegIdinServerTimeout = 0;
     public static Integer storePreferencesInServerTimeout = 0;
     public static Integer deletePreferencesInServerTimeout = 0;
@@ -169,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
 
         // database
         myMessageRepo = new MessageRepo();
+
     }
 
     @Override
@@ -673,6 +673,8 @@ public class MainActivity extends AppCompatActivity {
                 messageIntent = new Intent(MyApp.getContext(), MessageListActivity.class);
                 startActivity(messageIntent);
                 finish();
+
+                showSettings();
             }
 
             @Override
@@ -751,8 +753,20 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 Log.i(TAG, "deleteRegIdinServer onFailure: " + statusCode);
 
-                // When Http response code is '0' or '401'
-                if (statusCode == 400 || statusCode == 401 ||statusCode == 0) {
+                // When Http response code is '404'
+                if (statusCode == 404) {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_server_failure_404,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '500'
+                else if (statusCode == 500) {
+                    Toast.makeText(MyApp.getContext(),
+                            R.string.message_server_failure_500,
+                            Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '0' or equal/higher '400'
+                else if (statusCode >= 400 || statusCode == 0) {
                     if (deleteRegIdinServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
                         loginRefresh(new Callable<Void>() {
                             @Override
@@ -763,22 +777,11 @@ public class MainActivity extends AppCompatActivity {
                         });
                         deleteRegIdinServerTimeout++;
                     } else {
+                        deleteRegIdinServerTimeout = 0;
                         Toast.makeText(MyApp.getContext(),
                                 R.string.message_server_failure_401,
                                 Toast.LENGTH_LONG).show();
                     }
-                }
-                // When Http response code is '404'
-                else if (statusCode == 404) {
-                    Toast.makeText(MyApp.getContext(),
-                            R.string.message_server_failure_404,
-                            Toast.LENGTH_LONG).show();
-                }
-                // When Http response code is '500'
-                else if (statusCode == 500) {
-                    Toast.makeText(MyApp.getContext(),
-                            R.string.message_server_failure_500,
-                            Toast.LENGTH_LONG).show();
                 }
                 // When Http response code other than 404, 500
                 else {
@@ -847,7 +850,6 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
                 Log.i(TAG, "getUserSettingsLink - onSuccess: " + statusCode + ", " + responseString);
 
-
                 try {
                     myPreferencesJsonString.getPreferences(responseString);
 
@@ -868,24 +870,8 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
                 Log.i(TAG, "getUserSettingsLink - onFailure: " + statusCode + ", " + responseString);
 
-                // When Http response code is '0' or '401'
-                if (statusCode == 401 || statusCode == 0) {
-                    if (getUserSettingsTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh(new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                return getUserSettings();
-                            }
-                        });
-                        getUserSettingsTimeout++;
-                    } else {
-                        Toast.makeText(MyApp.getContext(),
-                                R.string.message_regIdinServer_failure_401,
-                                Toast.LENGTH_LONG).show();
-                    }
-                }
                 // When Http response code is '404'
-                else if (statusCode == 404) {
+                if (statusCode == 404) {
                     Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_404,
                             Toast.LENGTH_LONG).show();
@@ -896,6 +882,23 @@ public class MainActivity extends AppCompatActivity {
                             R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
                 }
+                // When Http response code is '0' or equal/higher '400'
+                else if (statusCode >= 400 || statusCode == 0) {
+                        if (getUserSettingsTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                            loginRefresh(new Callable<Void>() {
+                                @Override
+                                public Void call() throws Exception {
+                                    return getUserSettings();
+                                }
+                            });
+                            getUserSettingsTimeout++;
+                        } else {
+                            getUserSettingsTimeout = 0;
+                            Toast.makeText(MyApp.getContext(),
+                                    R.string.message_regIdinServer_failure_401,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
                 // When Http response code other than 404, 500
                 else {
                     Toast.makeText(
@@ -920,6 +923,18 @@ public class MainActivity extends AppCompatActivity {
         Preferences.editor.putInt(myPreferences.PREF_FLAT_RATE_REQUEST_ARRIVED, myPreferences.storedFlatRateRequestArrived);
         Preferences.editor.putInt(myPreferences.PREF_CONTACT_FORM, myPreferences.storedContactForm);
         Preferences.editor.commit();
+
+        if (myPreferences.storedInstantBookingArrived == 0 &&
+                myPreferences.storedOfferAdopted == 0 &&
+                myPreferences.storedOfferRejected == 0 &&
+                myPreferences.storedInquiryArrived == 0 &&
+                myPreferences.storedOldInboxMessages == 0 &&
+                myPreferences.storedFlatRateRequestArrived == 0 &&
+                myPreferences.storedContactForm == 0) {
+            ((TextView)activity.findViewById(R.id.textViewNoMessage)).setText(R.string.activate_notification);
+        } else {
+            ((TextView)activity.findViewById(R.id.textViewNoMessage)).setText(R.string.no_message);
+        }
     }
 
     public static void deletePreferencesInSharedPref() {
@@ -971,28 +986,14 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MyApp.getContext(),
                         R.string.message_storePreferencesInServer_success,
                         Toast.LENGTH_LONG).show();
+
+                storePreferencesInSharedPref();
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 Log.i(TAG, "storePreferencesInServer onFailure: " + statusCode);
 
-                // When Http response code is '0' or '401'
-                if (statusCode == 401 || statusCode == 0) {
-                    if (storePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
-                        loginRefresh(new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                return storePreferencesInServer();
-                            }
-                        });
-                        storePreferencesInServerTimeout++;
-                    } else {
-                        Toast.makeText(MyApp.getContext(),
-                                R.string.message_regIdinServer_failure_401,
-                                Toast.LENGTH_LONG).show();
-                    }
-                }
                 // When Http response code is '404'
                 if (statusCode == 404) {
                     Toast.makeText(MyApp.getContext(),
@@ -1004,6 +1005,23 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_500,
                             Toast.LENGTH_LONG).show();
+                }
+                // When Http response code is '0' or equal/higher '400'
+                else if (statusCode >= 400 || statusCode == 0) {
+                    if (storePreferencesInServerTimeout != ApplicationConstants.SERVER_TIMEOUT) {
+                        loginRefresh(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                return storePreferencesInServer();
+                            }
+                        });
+                        storePreferencesInServerTimeout++;
+                    } else {
+                        storePreferencesInServerTimeout = 0;
+                        Toast.makeText(MyApp.getContext(),
+                                R.string.message_regIdinServer_failure_401,
+                                Toast.LENGTH_LONG).show();
+                    }
                 }
                 // When Http response code other than 404, 500
                 else {
@@ -1052,6 +1070,7 @@ public class MainActivity extends AppCompatActivity {
                     });
                     deletePreferencesInServerTimeout++;
                 } else {
+                    deletePreferencesInServerTimeout = 0;
                     Toast.makeText(MyApp.getContext(),
                             R.string.message_regIdinServer_failure_401,
                             Toast.LENGTH_LONG).show();
